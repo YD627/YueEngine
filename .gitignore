@@ -1,0 +1,44 @@
+# === Visual Studio C++ 忽略规则 ===
+
+# 编译输出目录（根据你的图片结构）
+x64/
+x86/
+bin/
+build/
+out/
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.obj
+*.o
+*.a
+
+# Visual Studio 用户/临时文件
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+
+# NuGet / vcpkg / Conan 等包管理器缓存（如有）
+packages/
+vcpkg_installed/
+
+# IDE 生成文件
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db-shm
+*.VC.db-wal
+
+# 系统文件
+Thumbs.db
+.DS_Store
+EOF

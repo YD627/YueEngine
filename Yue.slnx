@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/解决方案项/">
+    <File Path="Yue.h" />
+  </Folder>
+  <Project Path="Sandbox/Sandbox.vcxproj" Id="735e2a69-f698-45bc-8b49-540af6fa5511" />
+  <Project Path="Yue/Yue.vcxproj" Id="bd0d125c-767e-464b-9544-32a6a6a1bd5d" />
+</Solution>
