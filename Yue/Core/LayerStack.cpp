@@ -3,31 +3,36 @@
 namespace Yue {
 	LayerStack::~LayerStack()
 	{
-		for (Layer* layer : m_Layers)
+		for (auto& layer : m_Layers)
 		{
 			layer->OnDetach();
-			delete layer;
 		}
 	}
 
-	void LayerStack::PushLayer(Layer* layer)
+	void LayerStack::PushLayer(Scope<Layer> layer)
 	{
-		m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, layer);
+		layer->OnAttach();
+
+		m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, std::move(layer));
+
 		m_LayerInsertIndex++;
-		// layer->OnAttach();
 	}
 
-	void LayerStack::PushOverlay(Layer* overlay)
+	void LayerStack::PushOverlay(Scope<Layer> overlay)
 	{
-		m_Layers.emplace_back(overlay);
+		overlay->OnAttach();
+
+		m_Layers.emplace_back(std::move(overlay));
 	}
 
 	void LayerStack::PopLayer(Layer* layer)
 	{
-		auto it = std::find(m_Layers.begin(), m_Layers.begin() + m_LayerInsertIndex, layer);
+		auto it = std::find_if(m_Layers.begin(), m_Layers.begin() + m_LayerInsertIndex, [layer](const Scope<Layer>& current) {
+			return current.get() == layer;
+			});
 		if (it != m_Layers.begin() + m_LayerInsertIndex)
 		{
-			layer->OnDetach();
+			(*it)->OnDetach();
 			m_Layers.erase(it);
 			m_LayerInsertIndex--;
 		}
@@ -35,10 +40,12 @@ namespace Yue {
 
 	void LayerStack::PopOverlay(Layer* overlay)
 	{
-		auto it = std::find(m_Layers.begin() + m_LayerInsertIndex, m_Layers.end(), overlay);
+		auto it = std::find_if(m_Layers.begin() + m_LayerInsertIndex, m_Layers.end(), [overlay](const Scope<Layer>& current) {
+			return current.get() == overlay;
+			});
 		if (it != m_Layers.end())
 		{
-			overlay->OnDetach();
+			(*it)->OnDetach();
 			m_Layers.erase(it);
 		}
 	}

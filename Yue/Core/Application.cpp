@@ -39,7 +39,7 @@ namespace Yue {
 
 			m_Window->Update();
 
-			for (auto layer : m_LayerStack) {
+			for (auto& layer : m_LayerStack) {
 				layer->OnUpdate(ts);
 			}
 
@@ -67,14 +67,12 @@ namespace Yue {
 		}
 	}
 
-	void Application::PushLayer(Layer* layer) {
-		m_LayerStack.PushLayer(layer);
-		layer->OnAttach();
+	void Application::PushLayer(Scope<Layer> layer) {
+		m_LayerStack.PushLayer(std::move(layer));
 	}
 
-	void Application::PushOverlay(Layer* overlay) {
-		m_LayerStack.PushOverlay(overlay);
-		overlay->OnAttach();
+	void Application::PushOverlay(Scope<Layer> overlay) {
+		m_LayerStack.PushOverlay(std::move(overlay));
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e) {

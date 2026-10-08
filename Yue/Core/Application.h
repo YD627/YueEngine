@@ -19,8 +19,8 @@ namespace Yue {
 
 		void OnEvent(Event& e);
 
-		void PushLayer(Layer* layer);
-		void PushOverlay(Layer* overlay);
+		void PushLayer(Scope<Layer> layer);
+		void PushOverlay(Scope<Layer> overlay);
 
 		bool OnWindowClose(WindowCloseEvent& e);
 

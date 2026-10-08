@@ -1,0 +1,22 @@
+请解释 RAII 是什么：
+    我的回答：RAII 是资源管理以及分配回收
+    准确回答：RAII(Resource Acquisition Is Initialization) 是一种C++资源管理思想：将资源的获取绑定到对象的生命周期，在对象构造时获取资源，在对象析构时自动释放资源。
+    面试回答：RAII是C++中的一种资源管理思想，将资源的生命周期绑定到对象生命周期。资源在对象构造时获取，在对象析构时释放，从而利用C++自动析构机制保证资源能够正确的释放。
+
+解释 unique_ptr 是什么：
+    我的回答：unique_ptr 是一种智能指针，用于管理所有权唯一的资源
+    准确回答：std::unique_ptr 表示对一个对象的独占所有权
+
+解释 shared_ptr 是什么：
+    我的回答： shared_ptr 是一种智能指针，用于管理共享资源
+    准确回答：std::shared_ptr 表示对对象的共享所有权，并通过引用计数管理对象生命周期。
+
+解释 std::move 对 unique_ptr 的影响：
+    我的回答：move会将资源的所有权转移，原先管理资源的指针会变为空指针
+
+追踪 YueEngine 中 Window 的生命周期：
+    我的回答：Window 在Application类构造时创建，并在Application结束时被销毁
+    准确回答：Application在构造过程中创建Window，并将其保存到Scope<Window>中。Application销毁时，其成员m_Window会自动析构，unique_ptr随机释放所拥有的Window对象。
+
+追踪 Layer 的创建和销毁过程:
+    我的回答：不同的Layer由其对应的子类创建并加入LayerStack中由LayerStack进行管理，当一个Layer结束时LayerStack会将其从vector中移除同时使用delete销毁对象

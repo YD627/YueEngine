@@ -6,7 +6,7 @@ class SandboxApp : public Yue::Application
 public:
 	SandboxApp()
 	{
-		PushLayer(new SandboxLayer());
+		PushLayer(Yue::CreateScope<SandboxLayer>());
 	}
 };
 
