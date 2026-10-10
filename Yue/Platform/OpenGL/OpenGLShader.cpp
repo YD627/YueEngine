@@ -1,5 +1,6 @@
 #include "OpenGLShader.h"
 #include "OpenGL.h"
+#include "Core/Assert.h"
 #include <fstream>
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
@@ -7,6 +8,12 @@
 namespace Yue {
 	static std::string ReadFile(const std::string& filepath) {
 		std::ifstream in(filepath);
+
+		if (!in.is_open()) {
+			YUE_CORE_ERROR("Failed to open shader file!");
+			return {};
+		}
+
 		std::stringstream ss;
 		ss << in.rdbuf();
 		return ss.str();
@@ -16,21 +23,65 @@ namespace Yue {
 		GLenum shader = glCreateShader(type);
 
 		const char* src = source.c_str();
-
 		glShaderSource(shader, 1, &src, nullptr);
-
 		glCompileShader(shader);
+
+		GLint success = GL_FALSE;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+
+		if (success != GL_TRUE) {
+			GLint logLength = 0;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+
+			std::string infoLog(static_cast<size_t>(logLength>1?logLength:1),'\0');
+
+			GLsizei written = 0;
+			glGetShaderInfoLog(shader, static_cast<GLsizei>(infoLog.size()), &written, infoLog.data());
+
+			if (type == GL_VERTEX_SHADER){
+				YUE_CORE_ERROR("Vertex shader compilation failed: " + infoLog);
+			}
+			else if (type == GL_FRAGMENT_SHADER) {
+				YUE_CORE_ERROR("Fragment shader compilation failed: " + infoLog);
+			}
+
+			glDeleteShader(shader);
+			return 0;
+		}
 
 		return shader;
 	}
 
 	GLenum OpenGLShader::CreateProgram(GLenum vertexShader, GLenum fragmentShader) {
+		if (vertexShader == 0 || fragmentShader == 0) {
+			YUE_CORE_ERROR("Shader program creation failed due to shader compilation error.");
+			if (vertexShader != 0) glDeleteShader(vertexShader);
+			if (fragmentShader != 0) glDeleteShader(fragmentShader);
+			return 0;
+		}
 		GLuint program = glCreateProgram();
 
 		glAttachShader(program, vertexShader);
 		glAttachShader(program, fragmentShader);
-
 		glLinkProgram(program);
+
+		GLint success = GL_FALSE;
+		glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+		if (success != GL_TRUE){
+			GLint logLength = 0;
+			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+
+			std::string infoLog(static_cast<size_t>(logLength > 1 ? logLength : 1), '\0');
+
+			GLsizei written = 0;
+			glGetProgramInfoLog(program, static_cast<GLsizei>(infoLog.size()), &written, infoLog.data());
+
+			YUE_CORE_ERROR("Shader program linking failed: " + infoLog);
+
+			glDeleteProgram(program);
+			program = 0;
+		}
 
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);

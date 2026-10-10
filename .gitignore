@@ -42,3 +42,6 @@ vcpkg_installed/
 Thumbs.db
 .DS_Store
 EOF
+
+# workbuddy文件
+.workbuddy/
