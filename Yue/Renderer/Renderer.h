@@ -15,7 +15,7 @@ namespace Yue {
 		static void SetClearColor(float r, float g, float b, float a);
 		static void Clear();
 
-		static void BeginScene(SceneCamera& camera, glm::mat4& view);
+		static void BeginScene(const SceneCamera& camera, const glm::mat4& view);
 		static void EndScene();
 
 		static void Submit(const Ref<Shader>& shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.0f));

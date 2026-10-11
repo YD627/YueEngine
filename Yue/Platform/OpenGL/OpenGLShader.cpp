@@ -89,6 +89,17 @@ namespace Yue {
 		return program;
 	}
 
+	GLint OpenGLShader::GetUniformLocation(const std::string& name){
+		if (m_UniformLocationCache.find(name) != m_UniformLocationCache.end()) {
+			return m_UniformLocationCache[name];
+		}
+
+		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		m_UniformLocationCache[name] = location;
+
+		return location;
+	}
+
 	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& fragmentSrc) :m_Name(name) {
 		auto vertexSource = ReadFile(vertexSrc);
 		auto fragmentSource = ReadFile(fragmentSrc);
@@ -112,7 +123,11 @@ namespace Yue {
 	}
 
 	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& matrix) {
-		GLuint location = glGetUniformLocation(m_RendererID, name.c_str());
+		GLuint location = GetUniformLocation(name);
+
+		if (location == -1){
+			return;
+		}
 
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}

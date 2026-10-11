@@ -18,6 +18,7 @@ private:
 
 	// Test
 	Yue::SceneCamera m_Camera;
+	Yue::TransformComponent m_CameraTransform;
 	Yue::TransformComponent m_Transform1;
 	Yue::TransformComponent m_Transform2;
 };

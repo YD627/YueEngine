@@ -10,6 +10,7 @@ namespace Yue {
 		m_PerspectiveFOV = verticalFOV;
 		m_PerspectiveNear = nearClip;
 		m_PerspectiveFar = farClip;
+		RecalculateProjection();
 	}
 
 	void SceneCamera::SetViewportSize(uint32_t width, uint32_t height) {

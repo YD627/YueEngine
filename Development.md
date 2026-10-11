@@ -2816,4 +2816,85 @@ glm::lookAt(...)                  → SetMat4("view")
 
 ---
 
-## 2026-08-20
+## 2026-10-11：Shader Uniform 更新机制完善
+
+**日期：** 2026-10-11
+
+### 一、今日目标
+
+完善 YueEngine 中 Shader Uniform 的设置与更新机制，确保模型变换、相机视图矩阵和投影矩阵发生变化后，渲染结果能够正确更新。
+
+### 二、今日完成内容
+
+#### 1. 修正 Renderer::BeginScene 的调用时机
+
+此前，`Renderer::BeginScene` 只在 `SandboxLayer::OnAttach` 中调用一次，导致视图矩阵和投影矩阵可能只是初始化时的状态。
+
+现在改为在 `SandboxLayer::OnUpdate` 中每帧重新计算 View Matrix，并调用：
+
+`Renderer::BeginScene(m_Camera, view)`
+
+使相机变换能够及时反映到后续渲染中。
+
+#### 2. 修正 SceneCamera::SetPerspective
+
+`SceneCamera::SetPerspective()` 修改 FOV、Near Plane 或 Far Plane 后，现在会调用 `RecalculateProjection()`，重新计算投影矩阵。
+
+这样可以避免相机投影参数已改变，但仍然使用旧投影矩阵的问题。
+
+#### 3. 确认模型矩阵更新链路
+
+`TransformComponent::GetTransform()` 在 `Renderer::Submit()` 调用前执行。
+
+因此，物体的 Translation、Rotation 或 Scale 发生变化时，可以重新计算 Model Matrix，并通过现有渲染链路上传。
+
+#### 4. 集中管理 Uniform 上传
+
+当前 `Renderer::Submit()` 负责以下流程：
+
+1. 绑定 Shader Program。
+2. 上传 Model Matrix。
+3. 上传 View Matrix。
+4. 上传 Projection Matrix。
+5. 绑定 VertexArray。
+6. 调用 `RenderCommand::DrawIndexed()`。
+
+这样可以让 Uniform 上传集中在 Renderer 的提交流程中，避免应用层直接管理底层 OpenGL 状态。
+
+#### 5. 增加 Uniform Location 缓存
+
+在 `OpenGLShader` 中新增 Uniform Location 缓存，避免每次调用 `SetMat4()` 都重新执行 `glGetUniformLocation()`。
+
+缓存保留在 OpenGL 后端实现中，没有暴露到 `Shader` 抽象层，也没有放入 `Renderer`。
+
+### 三、今日学习总结
+
+- 理解了 View Matrix 和 Projection Matrix 不应只在初始化时计算一次，而应在相关参数变化时更新。
+- 理解了 Model Matrix、View Matrix 和 Projection Matrix 在渲染流程中的职责。
+- 理解了通过 `Renderer::Submit()` 集中管理 Shader 绑定、Uniform 上传和 Draw Call 的意义。
+- 理解了 Uniform Location 缓存可以减少重复查询，并且适合放在 Shader 后端实现中管理。
+- 进一步明确了应用层、Renderer 抽象层与 OpenGL 后端之间的职责划分。
+
+### 四、当前限制
+
+- 当前仍处于基础 3D 渲染阶段。
+- 尚未完成完整的 3D Mesh、Texture 和 Material 系统。
+- 需要继续验证实际运行时的相机移动、投影参数变化和物体变换效果。
+- 暂未实现专门的 3D 相机控制器、复杂光照或阴影系统。
+
+### 五、下一步计划
+
+1. 完成 Day 2 的构建与运行验证，并确认矩阵变化确实能反映到画面中。
+2. 实现一个能够正确显示深度遮挡的 3D Cube。
+3. 检查并完善 OpenGL 深度测试状态。
+4. 逐步实现可移动的 3D 相机。
+5. 后续扩展 Mesh、Texture、Material 和基础光照。
+
+### 六、验证记录
+
+- [ ] 项目构建成功。
+- [ ] 修改 Transform 后，物体变换能够反映到画面中。
+- [ ] 修改相机视图参数后，画面能够正确更新。
+- [ ] 修改 FOV、Near Plane 或 Far Plane 后，投影矩阵能够重新计算。
+- [ ] 检查 Uniform Location 缓存的正确性。
+- [ ] 检查 Git 差异并完成提交。

@@ -2,6 +2,7 @@
 #include "Renderer/Shader.h"
 
 typedef unsigned int GLenum;
+typedef int GLint;
 
 namespace Yue {
 	class OpenGLShader : public Shader
@@ -19,10 +20,12 @@ namespace Yue {
 	private:
 		GLenum CompileShader(GLenum type, const std::string& source);
 		GLenum CreateProgram(GLenum vertexShader, GLenum fragmentShader);
+		GLint GetUniformLocation(const std::string& name);
 
 	private:
 		uint32_t m_RendererID;
 		//std::string m_FilePath;
 		std::string m_Name;
+		std::unordered_map<std::string, GLint> m_UniformLocationCache;
 	};
 }

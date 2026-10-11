@@ -23,7 +23,7 @@ namespace Yue {
 		RenderCommand::Clear();
 	}
 
-	void Renderer::BeginScene(SceneCamera& camera, glm::mat4& view) {
+	void Renderer::BeginScene(const SceneCamera& camera, const glm::mat4& view) {
 		s_SceneData->View = view;
 		s_SceneData->Projection = camera.GetProjection();
 	}
