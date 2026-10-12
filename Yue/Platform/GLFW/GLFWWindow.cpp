@@ -20,6 +20,7 @@ namespace Yue {
 		{
 			throw std::runtime_error("Failed to initialize GLFW");
 		}
+		glfwWindowHint(GLFW_DEPTH_BITS, 24);
 		m_Window = glfwCreateWindow(m_Data.Width, m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
 		if (!m_Window)
 		{
@@ -55,7 +56,7 @@ namespace Yue {
 	void GLFWWindow::Update()
 	{	
 		glfwPollEvents();
-		glfwSwapBuffers(m_Window);
+		m_context->SwapBuffers();
 	}
 
 	bool GLFWWindow::ShouldClose() const

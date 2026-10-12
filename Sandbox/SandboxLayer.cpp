@@ -7,35 +7,23 @@ void SandboxLayer::OnAttach()
 	YUE_INFO("Sandbox Attach");
 
 	float vertices[] = {
-		0.0f, 0.0f, 0.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		1.0f, 1.0f, 0.0f,
-
-		0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 1.0f,
-		0.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f
+		-0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f,
+		 0.5f,  0.5f, -0.5f,
+		-0.5f,  0.5f, -0.5f,
+		-0.5f, -0.5f,  0.5f,
+		 0.5f, -0.5f,  0.5f,
+		 0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f
 	};
 
 	uint32_t indices[] = {
-		0,1,2,
-		1,3,2,
-
-		4,5,7,
-		4,6,7,
-
-		3,1,5,
-		3,5,7,
-
-		2,4,1,
-		2,6,4,
-
-		2,3,6,
-		3,7,6,
-
-		0,4,5,
-		0,5,1
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4,
+		0, 4, 7, 7, 3, 0,
+		1, 5, 6, 6, 2, 1,
+		3, 2, 6, 6, 7, 3,
+		0, 1, 5, 5, 4, 0
 	};
 
 	m_Shader = Yue::Shader::Create("Simple", "Assets/Shaders/Simple.vert", "Assets/Shaders/Simple.frag");
@@ -52,12 +40,12 @@ void SandboxLayer::OnAttach()
 	m_VertexArray->SetIndexBuffer(indexBuffer);
 	
 	// ---Object------
-	m_Transform1.Translation = { -5.0f,-0.2f,0.0f };
-	m_Transform1.Rotation = { 1.0f,2.0f,0.0f };
+	m_Transform1.Translation = { 0.0f, 0.0f, 0.0f };
+	m_Transform1.Rotation = { 0.0f, 0.0f, 0.0f };
 	m_Transform1.Scale = { 1.0f,1.0f,1.0f };
 
-	m_Transform2.Translation = { 0.3f,0.2f,0.0f };
-	m_Transform2.Rotation = { 1.0f,0.0f,3.0f };
+	m_Transform2.Translation = { 0.3f, 0.2f, -0.8f };
+	m_Transform2.Rotation = { 0.0f, 0.0f, 0.0f };
 	m_Transform2.Scale = { 1.0f,1.0f,1.0f };
 
 	// ---Camera------
@@ -74,14 +62,19 @@ void SandboxLayer::OnDetach()
 
 void SandboxLayer::OnUpdate(Yue::Timestep ts)
 {
-	glm::mat4 view = glm::inverse(m_CameraTransform.GetTransform());
-	Yue::Renderer::BeginScene(m_Camera, view);
+	m_Transform1.Rotation.y += 1.0f * ts;
+	m_Transform1.Rotation.x += 0.5f * ts;
+	m_Transform2.Rotation.y -= 0.7f * ts;
 
 	Yue::Renderer::SetClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 	Yue::Renderer::Clear();
 
-	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform1.GetTransform());
+	glm::mat4 view = glm::inverse(m_CameraTransform.GetTransform());
+	Yue::Renderer::BeginScene(m_Camera, view);
+
 	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform2.GetTransform());
+	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform1.GetTransform());
+	Yue::Renderer::EndScene();
 }
 
 void SandboxLayer::OnEvent(Yue::Event& event)

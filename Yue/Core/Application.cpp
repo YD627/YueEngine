@@ -37,11 +37,11 @@ namespace Yue {
 
 			Timestep ts(timeStep);
 
-			m_Window->Update();
-
 			for (auto& layer : m_LayerStack) {
 				layer->OnUpdate(ts);
 			}
+
+			m_Window->Update();
 
 			if (m_Window->ShouldClose()) {
 				m_Running = false;
