@@ -7,14 +7,15 @@ void SandboxLayer::OnAttach()
 	YUE_INFO("Sandbox Attach");
 
 	float vertices[] = {
-		-0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f
+		// position				// color
+		-0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,		0.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,		0.0f, 0.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,		1.0f, 1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,		1.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,		0.0f, 1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,		1.0f, 1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,		0.0f, 0.0f, 0.0f
 	};
 
 	uint32_t indices[] = {
@@ -31,7 +32,7 @@ void SandboxLayer::OnAttach()
 	m_Shader->Bind();
 
 	m_VertexBuffer = Yue::VertexBuffer::Create(vertices, sizeof(vertices));
-	m_VertexBuffer->SetLayout({ {Yue::ShaderDataType::Float3,"a_Position"} });
+	m_VertexBuffer->SetLayout({ {Yue::ShaderDataType::Float3,"a_Position"},{Yue::ShaderDataType::Float3,"a_Color"} });
 
 	auto indexBuffer = Yue::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
 
@@ -40,11 +41,11 @@ void SandboxLayer::OnAttach()
 	m_VertexArray->SetIndexBuffer(indexBuffer);
 	
 	// ---Object------
-	m_Transform1.Translation = { 0.0f, 0.0f, 0.0f };
+	m_Transform1.Translation = { -4.0f, 0.0f, 0.0f };
 	m_Transform1.Rotation = { 0.0f, 0.0f, 0.0f };
 	m_Transform1.Scale = { 1.0f,1.0f,1.0f };
 
-	m_Transform2.Translation = { 0.3f, 0.2f, -0.8f };
+	m_Transform2.Translation = { 4.0f, 0.2f, -0.8f };
 	m_Transform2.Rotation = { 0.0f, 0.0f, 0.0f };
 	m_Transform2.Scale = { 1.0f,1.0f,1.0f };
 
@@ -66,7 +67,7 @@ void SandboxLayer::OnUpdate(Yue::Timestep ts)
 	m_Transform1.Rotation.x += 0.5f * ts;
 	m_Transform2.Rotation.y -= 0.7f * ts;
 
-	Yue::Renderer::SetClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+	Yue::Renderer::SetClearColor(0.219f, 0.219f, 0.219f, 1.0f);
 	Yue::Renderer::Clear();
 
 	glm::mat4 view = glm::inverse(m_CameraTransform.GetTransform());
