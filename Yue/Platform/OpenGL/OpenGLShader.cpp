@@ -131,4 +131,14 @@ namespace Yue {
 
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
+
+	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& value) {
+		GLint location = GetUniformLocation(name);
+
+		if (location == -1) {
+			return;
+		}
+
+		glUniform3f(location, value.x, value.y, value.z);
+	}
 }

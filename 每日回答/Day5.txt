@@ -1,0 +1,14 @@
+index 如何与 Shader 中的 layout(location = 0) 对应？
+	我的回答：glVertexAttribPointer(index...)中的index就对应location的值
+
+componentCount 为什么对 Float3 来说是 3？
+	我的回答：因为Float3对应3个float浮点数
+
+stride 为什么不是 12？
+	我的回答：12只是Float3的长度，但是位置加颜色是2个Float3，stride应该是24
+
+offset 为什么颜色是 12，而位置是 0？
+	我的回答：offset是顶点中属性的起始位置偏移，位置是第一个属性，自然起始位置是0，颜色在位置之后，起始位置要偏移位置属性的大小12字节
+
+为什么 glVertexAttribPointer() 本身不会自动启用属性数组？
+	我的回答：启动属性数组是glEnableVertexAttribArray的职责
