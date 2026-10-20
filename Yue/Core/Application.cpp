@@ -1,4 +1,4 @@
-﻿#include "Application.h"
+#include "Application.h"
 #include "Input.h"
 #include "Log.h"
 
@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <algorithm>
 
 namespace Yue {
 	Application::Application() {
@@ -24,16 +25,19 @@ namespace Yue {
 
 	void Application::Run() {
 
+		auto lastFrameTime = std::chrono::steady_clock::now();
+
 		while (m_Running) {
 			// Update application logic here
 
 			// Rendering code here
 
-			float time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+			auto currentFrameTime = std::chrono::steady_clock::now();
+			float timeStep = std::chrono::duration<float>(currentFrameTime - lastFrameTime).count();
+			lastFrameTime = currentFrameTime;
 
-			float timeStep = std::chrono::duration<float, std::chrono::seconds::period>(time - m_LastFrameTime).count();
-
-			m_LastFrameTime = time;
+			// Do not simulate an enormous step after a pause or a long stall.
+			timeStep = std::min(timeStep, 0.1f);
 
 			Timestep ts(timeStep);
 

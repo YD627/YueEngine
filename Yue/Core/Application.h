@@ -29,7 +29,6 @@ namespace Yue {
 		bool m_Running = true;
 		Scope<Window> m_Window;
 		LayerStack m_LayerStack;
-		float m_LastFrameTime = 0.0f;
 	};
 
 	// 在客户端定义这个函数，返回一个Application的实例

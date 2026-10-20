@@ -21,4 +21,5 @@
 #include "Yue/Renderer/Shader.h"
 
 // ----Scene----------------------
+#include "Yue/Scene/CameraController.h"
 #include "Yue/Scene/Components.h"

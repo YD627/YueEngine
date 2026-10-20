@@ -1,6 +1,10 @@
 #include "SandboxLayer.h"
 
-SandboxLayer::SandboxLayer(): Layer("SandboxLayer"){}
+SandboxLayer::SandboxLayer()
+	: Layer("SandboxLayer"),
+	  m_CameraController(glm::vec3(0.0f, 0.0f, 10.0f))
+{
+}
 
 void SandboxLayer::OnAttach()
 {
@@ -78,13 +82,13 @@ void SandboxLayer::OnAttach()
 
 	// ---Camera------
 	m_Camera.SetViewportSize(1280, 720);
-
-	m_CameraTransform.Translation = { 0.0f,0.0f,10.0f };
+	YUE_INFO("Camera: hold RMB to look/move, WASD to move, Shift to speed up, Esc to release");
 
 }
 
 void SandboxLayer::OnDetach()
 {
+	Yue::Input::SetCursorMode(Yue::Input::CursorMode::Normal);
 	YUE_INFO("Sandbox Detach");
 }
 
@@ -97,7 +101,9 @@ void SandboxLayer::OnUpdate(Yue::Timestep ts)
 	Yue::Renderer::SetClearColor(0.219f, 0.219f, 0.219f, 1.0f);
 	Yue::Renderer::Clear();
 
-	glm::mat4 view = glm::inverse(m_CameraTransform.GetTransform());
+	m_CameraController.OnUpdate(ts);
+
+	glm::mat4 view = m_CameraController.GetViewMatrix();
 	Yue::Renderer::BeginScene(m_Camera, view);
 
 	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform2.GetTransform());

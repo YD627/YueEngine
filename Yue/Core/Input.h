@@ -6,6 +6,13 @@
 namespace Yue {
 	class Input {
 	public:
+		enum class CursorMode
+		{
+			Normal = 0,
+			Hidden,
+			Disabled
+		};
+
 		static bool IsKeyPressed(KeyCode key);
 
 		static bool IsMouseButtonPressed(MouseCode button);
@@ -14,5 +21,7 @@ namespace Yue {
 
 		static float GetMouseX();
 		static float GetMouseY();
+
+		static void SetCursorMode(CursorMode mode);
 	};
 }

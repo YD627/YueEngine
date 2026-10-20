@@ -170,6 +170,7 @@
     <ClCompile Include="Renderer\RendererAPI.cpp" />
     <ClCompile Include="Renderer\Shader.cpp" />
     <ClCompile Include="Renderer\VertexArray.cpp" />
+    <ClCompile Include="Scene\CameraController.cpp" />
     <ClCompile Include="Scene\SceneCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -201,6 +202,7 @@
     <ClInclude Include="Renderer\RendererAPI.h" />
     <ClInclude Include="Renderer\Shader.h" />
     <ClInclude Include="Renderer\VertexArray.h" />
+    <ClInclude Include="Scene\CameraController.h" />
     <ClInclude Include="Scene\Components.h" />
     <ClInclude Include="Scene\SceneCamera.h" />
   </ItemGroup>

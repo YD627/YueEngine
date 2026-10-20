@@ -3040,3 +3040,196 @@ YueEngine 已经具备基础 3D 立方体绘制能力，并在原有渲染流程
 本日已完成顶点颜色数据添加、VertexBuffer 布局设置和 Shader 数据传递。
 
 运行效果、颜色插值效果以及 Day 3 深度测试等功能的回归情况，应以实际运行验证结果为准。
+
+----
+
+## 2026-10-18：基础漫反射光照
+
+### 一、今日目标
+
+为 YueEngine 中的 3D Cube 增加法线属性和基础方向光漫反射，实现从纯顶点颜色绘制到基础光照渲染的升级。
+    
+### 二、今日完成内容
+
+1. 将 Cube 的顶点数据由 8 个共享顶点调整为 24 个逐面顶点，保留 36 个索引。
+2. 为每个面设置独立的平面法线，支持硬边效果。
+3. 新增 `a_Normal` 顶点属性，并映射到 Vertex Attribute Location 2。
+4. 在 Vertex Shader 中使用法线矩阵变换法线。
+5. 在 Fragment Shader 中根据光照方向和法线点积计算漫反射。
+6. 为 `Shader` 和 `OpenGLShader` 新增 `SetFloat3`，用于上传 `u_LightDirection`。
+7. 保留顶点颜色、MVP 变换、双 Cube 旋转、索引绘制和深度测试。
+
+### 三、核心知识点
+
+- 法线用于描述表面朝向，是基础光照计算的重要输入。
+- 硬边模型需要允许相同几何位置具有不同的法线属性。
+- 顶点数据、顶点布局和 Shader 输入必须保持一致。
+- 法线变换与普通位置变换不同，非均匀缩放时需要使用法线矩阵。
+- Lambert 漫反射通过法线与指向光源的方向之间的点积计算光照贡献，并将负值截断为零。
+
+### 四、阶段成果
+
+YueEngine 已实现基础方向光漫反射，能够在保留原有 3D 几何绘制和深度测试功能的基础上，根据 Cube 各个面的朝向呈现不同的明暗效果。
+
+## 五、后续计划
+
+Day 7 优先完善相机控制与观察变换，验证相机移动和旋转后，场景几何关系、深度测试与基础光照仍然正确。
+
+----
+
+## 2026-10-20：3D 自由相机控制器
+
+### 一、今日目标
+
+将固定视角改为可交互的 3D 自由相机，理解 View Matrix、yaw/pitch、鼠标输入与相机成像链路；
+同时修复相机移动时物体“一帧帧”卡顿的问题，并验证 Day 6 的世界空间光照在相机运动后仍然正确。
+
+### 二、今日完成内容
+
+#### 1. 新增 CameraController
+
+新增 `Yue/Scene/CameraController.h/.cpp`，负责相机的位姿与输入：
+
+- 维护 `m_Position`、`m_Yaw`、`m_Pitch`；
+- 按住鼠标右键捕获光标，鼠标移动控制视角；
+- WASD 相对相机朝向移动，Space/LeftControl 升降，Shift 加速；
+- pitch 限制在 ±89°，避免 forward 与 worldUp 共线导致 View Matrix 退化；
+- 使用 `glm::lookAt(m_Position, m_Position + m_Front, m_Up)` 生成 View Matrix；
+- 松开右键或按 Esc 释放光标；第一帧鼠标位置只用于建立参考点，避免视角跳变。
+
+关键公式：
+
+```cpp
+front.x = cos(yaw) * cos(pitch);
+front.y = sin(pitch);
+front.z = sin(yaw) * cos(pitch);
+
+right = normalize(cross(front, worldUp));
+up    = normalize(cross(right, front));
+```
+
+#### 2. Input 增加光标模式
+
+在 `Input` 中新增：
+
+```cpp
+enum class CursorMode { Normal, Hidden, Disabled };
+static void SetCursorMode(CursorMode mode);
+```
+
+在 `GLFWInput.cpp` 中通过 `glfwSetInputMode(window, GLFW_CURSOR, ...)` 实现，
+上层代码不直接依赖 GLFW。
+
+#### 3. Sandbox 接入
+
+- `SandboxLayer` 用 `CameraController m_CameraController` 替换原来的 `m_CameraTransform`；
+- 原来：
+
+```cpp
+glm::mat4 view = glm::inverse(m_CameraTransform.GetTransform());
+```
+
+- 现在：
+
+```cpp
+m_CameraController.OnUpdate(ts);
+glm::mat4 view = m_CameraController.GetViewMatrix();
+```
+
+- 初始相机位置仍为 `(0, 0, 10)`，初始视角与原来一致；
+- `OnDetach` 恢复普通光标，避免退出后光标仍被锁定。
+
+#### 4. 相机与投影的职责划分
+
+本次没有把 FOV / aspect ratio 放进 `CameraController`，因为：
+
+- `CameraController` 只负责相机位姿，生成 View Matrix；
+- `SceneCamera` 负责镜头参数，生成 Projection Matrix；
+- `Renderer::BeginScene(m_Camera, view)` 同时接收两者；
+- 顶点着色器最终计算：
+
+```glsl
+gl_Position = projection * view * transform * vec4(aPos, 1.0);
+```
+
+当前投影参数来自 `SceneCamera`：
+
+- 垂直 FOV：45°（`glm::radians(45.0f)`）；
+- near：0.1，far：100；
+- aspect ratio：`m_Camera.SetViewportSize(1280, 720)` 设置为 16:9。
+
+#### 5. 修复移动卡顿
+
+实际运行时发现相机移动时物体有一帧一帧的步进感。定位到主循环的时间计算：
+
+```cpp
+float time = std::chrono::duration<float, std::chrono::seconds::period>(
+    std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+float timeStep = time - m_LastFrameTime;
+```
+
+`high_resolution_clock` 的绝对时间（Windows 上通常是开机时长）被存进 `float`。
+本机开机约 4.6 天，约 396600 秒，此时 `float` 的最小精度约为 31.25ms，
+大于 60FPS 的 16.7ms 帧间隔，导致 `timeStep` 多数帧为 0，
+物体只能每隔约两帧更新一次。
+
+修复方式：
+
+```cpp
+auto lastFrameTime = std::chrono::steady_clock::now();
+
+while (m_Running) {
+    auto currentFrameTime = std::chrono::steady_clock::now();
+    float timeStep = std::chrono::duration<float>(
+        currentFrameTime - lastFrameTime).count();
+    lastFrameTime = currentFrameTime;
+
+    timeStep = std::min(timeStep, 0.1f);
+
+    Timestep ts(timeStep);
+    ...
+}
+```
+
+同时在 `OpenGLContext::Init()` 中开启 VSync：
+
+```cpp
+glfwSwapInterval(1);
+```
+
+作用：
+
+- 不再把绝对时间转成 `float`，而是用两个时间点的差；
+- 避免暂停/断点后产生巨大的模拟步长；
+- 稳定帧节奏，减少撕裂和抖动。
+
+### 三、核心知识点
+
+- View Matrix 是相机世界变换的逆；`lookAt(position, position + front, up)` 直接构造这个逆变换。
+- `CameraController` 负责“相机在哪、朝哪看”，`SceneCamera` 负责“镜头多广、画面比例”。
+- yaw 控制左右，pitch 控制上下；pitch 必须 clamp，避免 forward 与 worldUp 共线。
+- 鼠标 delta 不乘 delta time；相机移动速度必须乘 delta time。
+- 光照仍在世界空间计算；相机运动只改变 View，不改变 N 和 L，所以立方体各面的明暗关系不会“粘”在相机上。
+- `float` 只有约 7 位有效数字；测量帧间隔应存储两个时间点并相减，而不是把绝对时间存进 `float`。
+- 投影矩阵负责透视除法所需的信息；顶点最终还要经过透视除法、NDC、视口变换和光栅化才变成像素。
+
+### 四、验证记录
+
+- Debug|x64 编译通过，生成 `Yue.lib` 和 `Sandbox.exe`；仅有项目原有的 C4819 编码警告。
+- 实际运行：窗口正常创建，Shader 编译/链接无错误，两个 Cube 正常渲染，深度测试正常。
+- 模拟右键捕获/释放，日志确认 `Camera cursor captured` / `Camera cursor released`。
+- 通过临时诊断日志确认：yaw 从 -90° 变为 -71.5°，pitch 从 0° 变为 -3.1°，位置从 `(0,0,10)` 前进到约 `(0.86, -0.15, 7.43)`，与当前 `front` 方向一致。
+- 截图对比确认视角发生变化；相机移动后光照关系保持稳定。
+- 修复时间精度后重新编译运行通过；实际移动手感待交互复验。
+- 已知限制：
+  - 窗口 resize 时相机 aspect ratio 与 viewport 尚未更新，画面可能被拉伸；
+  - Back / Right / Top 三个面的三角绕序仍与法线方向不一致，当前未开启背面剔除，暂不影响画面；
+  - 鼠标灵敏度受系统指针加速影响，实际手感可能需要调整；
+  - `Time.cpp` 仍用 `float` 保存 `glfwGetTime()`，目前未被主循环调用，后续启用时需同样处理。
+
+### 五、后续计划
+
+- Day 8：纹理映射（UV、Texture2D、stb_image、纹理单元、过滤与 mipmap）。
+- 处理窗口 resize 的 viewport 与投影宽高比。
+- 在开启背面剔除前修正立方体 Back/Right/Top 的绕序。
+- 考虑给相机增加滚轮 FOV 缩放，或把 `SceneCamera` 的引用接入控制器，用于统一调整镜头参数。
