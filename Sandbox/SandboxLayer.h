@@ -15,6 +15,7 @@ private:
 	Yue::Ref<Yue::VertexBuffer> m_VertexBuffer;
 	Yue::Ref<Yue::VertexArray> m_VertexArray;
 	Yue::Ref<Yue::Shader> m_Shader;
+	Yue::Ref<Yue::Texture2D> m_Texture;
 
 	// Test
 	Yue::SceneCamera m_Camera;

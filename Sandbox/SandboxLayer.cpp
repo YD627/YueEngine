@@ -11,37 +11,42 @@ void SandboxLayer::OnAttach()
 	YUE_INFO("Sandbox Attach");
 
 	float vertices[] = {
-		// position				// color				// normal
+		// position              // color              // normal              // Texture Coordinates
 		// Back (-Z)
-		-0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f, -1.0f,
-		 0.5f, -0.5f, -0.5f,		0.0f, 1.0f, 0.0f,		0.0f, 0.0f, -1.0f,
-		 0.5f,  0.5f, -0.5f,		0.0f, 0.0f, 1.0f,		0.0f, 0.0f, -1.0f,
-		-0.5f,  0.5f, -0.5f,		1.0f, 1.0f, 0.0f,		0.0f, 0.0f, -1.0f,
+		-0.5f, -0.5f, -0.5f,      1.0f, 0.0f, 0.0f,      0.0f,  0.0f, -1.0f,     1.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,      0.0f, 1.0f, 0.0f,      0.0f,  0.0f, -1.0f,     0.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,      0.0f, 0.0f, 1.0f,      0.0f,  0.0f, -1.0f,     0.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,      1.0f, 1.0f, 0.0f,      0.0f,  0.0f, -1.0f,     1.0f, 1.0f,
+
 		// Front (+Z)
-		-0.5f, -0.5f,  0.5f,		1.0f, 0.0f, 1.0f,		0.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,		1.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,		0.0f, 0.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,      1.0f, 0.0f, 1.0f,      0.0f,  0.0f,  1.0f,     0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,      0.0f, 1.0f, 1.0f,      0.0f,  0.0f,  1.0f,     1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,      1.0f, 1.0f, 1.0f,      0.0f,  0.0f,  1.0f,     1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,      0.0f, 0.0f, 0.0f,      0.0f,  0.0f,  1.0f,     0.0f, 1.0f,
+
 		// Left (-X)
-		-0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		-1.0f, 0.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,		1.0f, 0.0f, 1.0f,		-1.0f, 0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,		0.0f, 0.0f, 0.0f,		-1.0f, 0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,		1.0f, 1.0f, 0.0f,		-1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,      1.0f, 0.0f, 0.0f,     -1.0f,  0.0f,  0.0f,     0.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,      1.0f, 0.0f, 1.0f,     -1.0f,  0.0f,  0.0f,     1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,      0.0f, 0.0f, 0.0f,     -1.0f,  0.0f,  0.0f,     1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,      1.0f, 1.0f, 0.0f,     -1.0f,  0.0f,  0.0f,     0.0f, 1.0f,
+
 		// Right (+X)
-		 0.5f, -0.5f, -0.5f,		0.0f, 1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,		1.0f, 1.0f, 1.0f,		1.0f, 0.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 0.0f,
-		// Top (+Y)
-		-0.5f,  0.5f, -0.5f,		1.0f, 1.0f, 0.0f,		0.0f, 1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,		0.0f, 0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,		1.0f, 1.0f, 1.0f,		0.0f, 1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,		0.0f, 0.0f, 0.0f,		0.0f, 1.0f, 0.0f,
-		// Bottom (-Y)
-		-0.5f, -0.5f, -0.5f,		1.0f, 0.0f, 0.0f,		0.0f, -1.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,		0.0f, 1.0f, 0.0f,		0.0f, -1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,		0.0f, 1.0f, 1.0f,		0.0f, -1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,		1.0f, 0.0f, 1.0f,		0.0f, -1.0f, 0.0f
+		 0.5f, -0.5f, -0.5f,      0.0f, 1.0f, 0.0f,      1.0f,  0.0f,  0.0f,     1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,      0.0f, 1.0f, 1.0f,      1.0f,  0.0f,  0.0f,     0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,      1.0f, 1.0f, 1.0f,      1.0f,  0.0f,  0.0f,     0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,      0.0f, 0.0f, 1.0f,      1.0f,  0.0f,  0.0f,     1.0f, 1.0f,
+
+		 // Top (+Y)
+		 -0.5f,  0.5f, -0.5f,      1.0f, 1.0f, 0.0f,      0.0f,  1.0f,  0.0f,     0.0f, 1.0f,
+		  0.5f,  0.5f, -0.5f,      0.0f, 0.0f, 1.0f,      0.0f,  1.0f,  0.0f,     1.0f, 1.0f,
+		  0.5f,  0.5f,  0.5f,      1.0f, 1.0f, 1.0f,      0.0f,  1.0f,  0.0f,     1.0f, 0.0f,
+		 -0.5f,  0.5f,  0.5f,      0.0f, 0.0f, 0.0f,      0.0f,  1.0f,  0.0f,     0.0f, 0.0f,
+
+		 // Bottom (-Y)
+		 -0.5f, -0.5f, -0.5f,      1.0f, 0.0f, 0.0f,      0.0f, -1.0f,  0.0f,     0.0f, 0.0f,
+		  0.5f, -0.5f, -0.5f,      0.0f, 1.0f, 0.0f,      0.0f, -1.0f,  0.0f,     1.0f, 0.0f,
+		  0.5f, -0.5f,  0.5f,      0.0f, 1.0f, 1.0f,      0.0f, -1.0f,  0.0f,     1.0f, 1.0f,
+		 -0.5f, -0.5f,  0.5f,      1.0f, 0.0f, 1.0f,      0.0f, -1.0f,  0.0f,     0.0f, 1.0f
 	};
 
 	uint32_t indices[] = {
@@ -61,7 +66,8 @@ void SandboxLayer::OnAttach()
 	m_VertexBuffer->SetLayout({
 		{ Yue::ShaderDataType::Float3, "a_Position" },
 		{ Yue::ShaderDataType::Float3, "a_Color" },
-		{ Yue::ShaderDataType::Float3, "a_Normal" }
+		{ Yue::ShaderDataType::Float3, "a_Normal" },
+		{ Yue::ShaderDataType::Float2, "a_TexCoord" }
 	});
 	m_Shader->SetFloat3("u_LightDirection", { -0.5f, -1.0f, -0.3f });
 
@@ -84,6 +90,18 @@ void SandboxLayer::OnAttach()
 	m_Camera.SetViewportSize(1280, 720);
 	YUE_INFO("Camera: hold RMB to look/move, WASD to move, Shift to speed up, Esc to release");
 
+	// ---Texture------
+	m_Texture = Yue::Texture2D::Create("Assets/Textures/cartoon_floor.png");
+	if (!m_Texture || !m_Texture->IsLoaded())
+	{
+		YUE_ERROR("Failed to load texture: Assets/Textures/cartoon_floor.png");
+	}
+	else
+	{
+		YUE_INFO("Texture loaded");
+		m_Shader->Bind();
+		m_Shader->SetInt("u_Texture", 0);
+	}
 }
 
 void SandboxLayer::OnDetach()
@@ -105,6 +123,11 @@ void SandboxLayer::OnUpdate(Yue::Timestep ts)
 
 	glm::mat4 view = m_CameraController.GetViewMatrix();
 	Yue::Renderer::BeginScene(m_Camera, view);
+
+	if (m_Texture && m_Texture->IsLoaded())
+	{
+		m_Texture->Bind(0);
+	}
 
 	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform2.GetTransform());
 	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform1.GetTransform());

@@ -19,6 +19,7 @@
 #include "Yue/Renderer/Renderer.h"
 #include "Yue/Renderer/VertexArray.h"
 #include "Yue/Renderer/Shader.h"
+#include "Yue/Renderer/Texture.h"
 
 // ----Scene----------------------
 #include "Yue/Scene/CameraController.h"

@@ -122,6 +122,16 @@ namespace Yue {
 		glUseProgram(0);
 	}
 
+	void OpenGLShader::SetInt(const std::string& name, int value){
+		GLint location = GetUniformLocation(name);
+
+		if (location == -1) {
+			return;
+		}
+
+		glUniform1i(location, value);
+	}
+
 	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& matrix) {
 		GLuint location = GetUniformLocation(name);
 

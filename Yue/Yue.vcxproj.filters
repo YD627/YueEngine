@@ -87,6 +87,18 @@
     <ClCompile Include="Scene\SceneCamera.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\CameraController.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\OpenGL\StbImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Texture.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\OpenGL\OpenGLTexture.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Platform\GLFW\GLFWWindow.h">
@@ -177,6 +189,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Scene\SceneCamera.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\CameraController.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\Texture.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\OpenGL\OpenGLTexture.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
