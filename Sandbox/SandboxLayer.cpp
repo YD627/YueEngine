@@ -10,46 +10,46 @@ void SandboxLayer::OnAttach()
 {
 	YUE_INFO("Sandbox Attach");
 
-	float vertices[] = {
-		// position              // color              // normal              // Texture Coordinates
+	std::vector<Yue::Vertex> vertices = {
+		// position                  // color                 // normal                // Texture Coordinates
 		// Back (-Z)
-		-0.5f, -0.5f, -0.5f,      1.0f, 0.0f, 0.0f,      0.0f,  0.0f, -1.0f,     1.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,      0.0f, 1.0f, 0.0f,      0.0f,  0.0f, -1.0f,     0.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,      0.0f, 0.0f, 1.0f,      0.0f,  0.0f, -1.0f,     0.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,      1.0f, 1.0f, 0.0f,      0.0f,  0.0f, -1.0f,     1.0f, 1.0f,
+		{{-0.5f, -0.5f, -0.5f},      {1.0f, 0.0f, 0.0f},      {0.0f,  0.0f, -1.0f},    {1.0f, 0.0f}},
+		{{ 0.5f, -0.5f, -0.5f},      {0.0f, 1.0f, 0.0f},      {0.0f,  0.0f, -1.0f},    {0.0f, 0.0f}},
+		{{ 0.5f,  0.5f, -0.5f},      {0.0f, 0.0f, 1.0f},      {0.0f,  0.0f, -1.0f},    {0.0f, 1.0f}},
+		{{-0.5f,  0.5f, -0.5f},      {1.0f, 1.0f, 0.0f},      {0.0f,  0.0f, -1.0f},    {1.0f, 1.0f}},
 
 		// Front (+Z)
-		-0.5f, -0.5f,  0.5f,      1.0f, 0.0f, 1.0f,      0.0f,  0.0f,  1.0f,     0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,      0.0f, 1.0f, 1.0f,      0.0f,  0.0f,  1.0f,     1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,      1.0f, 1.0f, 1.0f,      0.0f,  0.0f,  1.0f,     1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,      0.0f, 0.0f, 0.0f,      0.0f,  0.0f,  1.0f,     0.0f, 1.0f,
+		{{-0.5f, -0.5f,  0.5f},      {1.0f, 0.0f, 1.0f},      {0.0f,  0.0f,  1.0f},    {0.0f, 0.0f}},
+		{{ 0.5f, -0.5f,  0.5f},      {0.0f, 1.0f, 1.0f},      {0.0f,  0.0f,  1.0f},    {1.0f, 0.0f}},
+		{{ 0.5f,  0.5f,  0.5f},      {1.0f, 1.0f, 1.0f},      {0.0f,  0.0f,  1.0f},    {1.0f, 1.0f}},
+		{{-0.5f,  0.5f,  0.5f},      {0.0f, 0.0f, 0.0f},      {0.0f,  0.0f,  1.0f},    {0.0f, 1.0f}},
 
 		// Left (-X)
-		-0.5f, -0.5f, -0.5f,      1.0f, 0.0f, 0.0f,     -1.0f,  0.0f,  0.0f,     0.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,      1.0f, 0.0f, 1.0f,     -1.0f,  0.0f,  0.0f,     1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,      0.0f, 0.0f, 0.0f,     -1.0f,  0.0f,  0.0f,     1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,      1.0f, 1.0f, 0.0f,     -1.0f,  0.0f,  0.0f,     0.0f, 1.0f,
+		{{-0.5f, -0.5f, -0.5f},      {1.0f, 0.0f, 0.0f},      {-1.0f, 0.0f,  0.0f},    {0.0f, 0.0f}},
+		{{-0.5f, -0.5f,  0.5f},      {1.0f, 0.0f, 1.0f},      {-1.0f, 0.0f,  0.0f},    {1.0f, 0.0f}},
+		{{-0.5f,  0.5f,  0.5f},      {0.0f, 0.0f, 0.0f},      {-1.0f, 0.0f,  0.0f},    {1.0f, 1.0f}},
+		{{-0.5f,  0.5f, -0.5f},      {1.0f, 1.0f, 0.0f},      {-1.0f, 0.0f,  0.0f},    {0.0f, 1.0f}},
 
 		// Right (+X)
-		 0.5f, -0.5f, -0.5f,      0.0f, 1.0f, 0.0f,      1.0f,  0.0f,  0.0f,     1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,      0.0f, 1.0f, 1.0f,      1.0f,  0.0f,  0.0f,     0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,      1.0f, 1.0f, 1.0f,      1.0f,  0.0f,  0.0f,     0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,      0.0f, 0.0f, 1.0f,      1.0f,  0.0f,  0.0f,     1.0f, 1.0f,
+		{{ 0.5f, -0.5f, -0.5f},      {0.0f, 1.0f, 0.0f},      {1.0f,  0.0f,  0.0f},    {1.0f, 0.0f}},
+		{{ 0.5f, -0.5f,  0.5f},      {0.0f, 1.0f, 1.0f},      {1.0f,  0.0f,  0.0f},    {0.0f, 0.0f}},
+		{{ 0.5f,  0.5f,  0.5f},      {1.0f, 1.0f, 1.0f},      {1.0f,  0.0f,  0.0f},    {0.0f, 1.0f}},
+		{{ 0.5f,  0.5f, -0.5f},      {0.0f, 0.0f, 1.0f},      {1.0f,  0.0f,  0.0f},    {1.0f, 1.0f}},
 
-		 // Top (+Y)
-		 -0.5f,  0.5f, -0.5f,      1.0f, 1.0f, 0.0f,      0.0f,  1.0f,  0.0f,     0.0f, 1.0f,
-		  0.5f,  0.5f, -0.5f,      0.0f, 0.0f, 1.0f,      0.0f,  1.0f,  0.0f,     1.0f, 1.0f,
-		  0.5f,  0.5f,  0.5f,      1.0f, 1.0f, 1.0f,      0.0f,  1.0f,  0.0f,     1.0f, 0.0f,
-		 -0.5f,  0.5f,  0.5f,      0.0f, 0.0f, 0.0f,      0.0f,  1.0f,  0.0f,     0.0f, 0.0f,
+		// Top (+Y)
+		{{-0.5f,  0.5f, -0.5f},      {1.0f, 1.0f, 0.0f},      {0.0f,  1.0f,  0.0f},    {0.0f, 1.0f}},
+		{{ 0.5f,  0.5f, -0.5f},      {0.0f, 0.0f, 1.0f},      {0.0f,  1.0f,  0.0f},    {1.0f, 1.0f}},
+		{{ 0.5f,  0.5f,  0.5f},      {1.0f, 1.0f, 1.0f},      {0.0f,  1.0f,  0.0f},    {1.0f, 0.0f}},
+		{{-0.5f,  0.5f,  0.5f},      {0.0f, 0.0f, 0.0f},      {0.0f,  1.0f,  0.0f},    {0.0f, 0.0f}},
 
-		 // Bottom (-Y)
-		 -0.5f, -0.5f, -0.5f,      1.0f, 0.0f, 0.0f,      0.0f, -1.0f,  0.0f,     0.0f, 0.0f,
-		  0.5f, -0.5f, -0.5f,      0.0f, 1.0f, 0.0f,      0.0f, -1.0f,  0.0f,     1.0f, 0.0f,
-		  0.5f, -0.5f,  0.5f,      0.0f, 1.0f, 1.0f,      0.0f, -1.0f,  0.0f,     1.0f, 1.0f,
-		 -0.5f, -0.5f,  0.5f,      1.0f, 0.0f, 1.0f,      0.0f, -1.0f,  0.0f,     0.0f, 1.0f
+		// Bottom (-Y)
+		{{-0.5f, -0.5f, -0.5f},      {1.0f, 0.0f, 0.0f},      {0.0f, -1.0f,  0.0f},    {0.0f, 0.0f}},
+		{{ 0.5f, -0.5f, -0.5f},      {0.0f, 1.0f, 0.0f},      {0.0f, -1.0f,  0.0f},    {1.0f, 0.0f}},
+		{{ 0.5f, -0.5f,  0.5f},      {0.0f, 1.0f, 1.0f},      {0.0f, -1.0f,  0.0f},    {1.0f, 1.0f}},
+		{{-0.5f, -0.5f,  0.5f},      {1.0f, 0.0f, 1.0f},      {0.0f, -1.0f,  0.0f},    {0.0f, 1.0f}}
 	};
 
-	uint32_t indices[] = {
+	std::vector<uint32_t> indices = {
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4,
 		8, 9, 10, 10, 11, 8,
@@ -62,20 +62,9 @@ void SandboxLayer::OnAttach()
 	YUE_INFO("Shader Create");
 	m_Shader->Bind();
 
-	m_VertexBuffer = Yue::VertexBuffer::Create(vertices, sizeof(vertices));
-	m_VertexBuffer->SetLayout({
-		{ Yue::ShaderDataType::Float3, "a_Position" },
-		{ Yue::ShaderDataType::Float3, "a_Color" },
-		{ Yue::ShaderDataType::Float3, "a_Normal" },
-		{ Yue::ShaderDataType::Float2, "a_TexCoord" }
-	});
+	m_CubeMesh = Yue::Mesh::Create(vertices, indices);
+
 	m_Shader->SetFloat3("u_LightDirection", { -0.5f, -1.0f, -0.3f });
-
-	auto indexBuffer = Yue::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
-
-	m_VertexArray = Yue::VertexArray::Create();
-	m_VertexArray->AddVertexBuffer(m_VertexBuffer);
-	m_VertexArray->SetIndexBuffer(indexBuffer);
 	
 	// ---Object------
 	m_Transform1.Translation = { -4.0f, 0.0f, 0.0f };
@@ -91,17 +80,33 @@ void SandboxLayer::OnAttach()
 	YUE_INFO("Camera: hold RMB to look/move, WASD to move, Shift to speed up, Esc to release");
 
 	// ---Texture------
-	m_Texture = Yue::Texture2D::Create("Assets/Textures/cartoon_floor.png");
-	if (!m_Texture || !m_Texture->IsLoaded())
+	m_TextureA = Yue::Texture2D::Create("Assets/Textures/cartoon_floor.png");
+	if (!m_TextureA || !m_TextureA->IsLoaded())
 	{
 		YUE_ERROR("Failed to load texture: Assets/Textures/cartoon_floor.png");
 	}
 	else
 	{
 		YUE_INFO("Texture loaded");
-		m_Shader->Bind();
-		m_Shader->SetInt("u_Texture", 0);
+		
 	}
+
+	m_TextureB = Yue::Texture2D::Create("Assets/Textures/square_pavers_diff_1k.jpg");
+	if (!m_TextureB || !m_TextureB->IsLoaded())
+	{
+		YUE_ERROR("Failed to load texture: Assets/Textures/square_pavers_diff_1k.jpg");
+	}
+	else
+	{
+		YUE_INFO("Texture loaded");
+	}
+
+	// ---Material------
+	m_MaterialA = Yue::Material::Create(m_Shader);
+	m_MaterialA->SetTexture("u_Texture", m_TextureA, 0);
+
+	m_MaterialB = Yue::Material::Create(m_Shader);
+	m_MaterialB->SetTexture("u_Texture", m_TextureB, 0);
 }
 
 void SandboxLayer::OnDetach()
@@ -124,13 +129,9 @@ void SandboxLayer::OnUpdate(Yue::Timestep ts)
 	glm::mat4 view = m_CameraController.GetViewMatrix();
 	Yue::Renderer::BeginScene(m_Camera, view);
 
-	if (m_Texture && m_Texture->IsLoaded())
-	{
-		m_Texture->Bind(0);
-	}
+	Yue::Renderer::Submit(m_MaterialA, m_CubeMesh->GetVertexArray(), m_Transform2.GetTransform());
+	Yue::Renderer::Submit(m_MaterialB, m_CubeMesh->GetVertexArray(), m_Transform1.GetTransform());
 
-	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform2.GetTransform());
-	Yue::Renderer::Submit(m_Shader, m_VertexArray, m_Transform1.GetTransform());
 	Yue::Renderer::EndScene();
 }
 

@@ -41,4 +41,15 @@ namespace Yue {
 
 		RenderCommand::DrawIndexed(vertexArray);
 	}
+	void Renderer::Submit(const Ref<Material>& material, const Ref<VertexArray>& vertexArray, const glm::mat4& transform) {
+		material->Bind();
+
+		const auto& shader = material->GetShader();
+		shader->SetMat4("transform", transform);
+		shader->SetMat4("view", s_SceneData->View);
+		shader->SetMat4("projection", s_SceneData->Projection);
+
+		vertexArray->Bind();
+		RenderCommand::DrawIndexed(vertexArray);
+	}
 }

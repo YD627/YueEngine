@@ -16,10 +16,12 @@
 
 // ----Renderer----------------------
 #include "Yue/Renderer/Buffer.h"
+#include "Yue/Renderer/Mesh.h"
 #include "Yue/Renderer/Renderer.h"
 #include "Yue/Renderer/VertexArray.h"
 #include "Yue/Renderer/Shader.h"
 #include "Yue/Renderer/Texture.h"
+#include "Yue/Renderer/Material.h"
 
 // ----Scene----------------------
 #include "Yue/Scene/CameraController.h"

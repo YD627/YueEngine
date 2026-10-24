@@ -12,10 +12,12 @@ public:
 	void OnEvent(Yue::Event& event) override;
 
 private:
-	Yue::Ref<Yue::VertexBuffer> m_VertexBuffer;
-	Yue::Ref<Yue::VertexArray> m_VertexArray;
 	Yue::Ref<Yue::Shader> m_Shader;
-	Yue::Ref<Yue::Texture2D> m_Texture;
+	Yue::Ref<Yue::Texture2D> m_TextureA;
+	Yue::Ref<Yue::Texture2D> m_TextureB;
+	Yue::Ref<Yue::Material> m_MaterialA;
+	Yue::Ref<Yue::Material> m_MaterialB;
+	Yue::Ref<Yue::Mesh> m_CubeMesh;
 
 	// Test
 	Yue::SceneCamera m_Camera;

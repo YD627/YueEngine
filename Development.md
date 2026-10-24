@@ -3233,3 +3233,513 @@ glfwSwapInterval(1);
 - 处理窗口 resize 的 viewport 与投影宽高比。
 - 在开启背面剔除前修正立方体 Back/Right/Top 的绕序。
 - 考虑给相机增加滚轮 FOV 缩放，或把 `SceneCamera` 的引用接入控制器，用于统一调整镜头参数。
+
+----
+
+## 2026-10-22：纹理映射与 mipmap
+
+### 一、今日目标
+
+在 Day 6 的 Lambert 光照和 Day 7 的自由相机基础上，为 Cube 增加 UV 与 2D 纹理采样，
+理解从图片文件到 `sampler2D` 的完整数据流，并加入 mipmap 解决远处缩小时的闪烁。
+同时修复纹理对象生命周期导致的纯黑立方体问题。
+
+### 二、今日完成内容
+
+#### 1. 顶点增加 UV
+
+每个顶点从 9 个 float 扩展为 11 个 float，UV 追加在 normal 后面，
+这样前三个属性的 offset 完全不变：
+
+| 属性 | 类型 | offset | 说明 |
+|---|---|---|---|
+| position | Float3 | 0 | 不变 |
+| color | Float3 | 12 | 不变 |
+| normal | Float3 | 24 | 不变 |
+| texcoord | Float2 | 36 | 新增 |
+| stride | | 44 | 9 → 11 个 float |
+
+`BufferLayout` 增加：
+
+```cpp
+{ Yue::ShaderDataType::Float2, "a_TexCoord" }
+```
+
+Vertex Shader 增加：
+
+```glsl
+layout(location = 3) in vec2 aTexCoord;
+out vec2 v_TexCoord;
+```
+
+每个面 4 个顶点使用 0–1 的 UV。由于当前是实体立方体、从外部观察六个面，
+各面的 UV 方向按外部视角配置，不追求展开图意义上的统一。
+
+#### 2. Texture2D 抽象与 OpenGL 实现
+
+新增：
+
+```text
+Yue/Renderer/Texture.h
+Yue/Renderer/Texture.cpp
+Yue/Platform/OpenGL/OpenGLTexture.h
+Yue/Platform/OpenGL/OpenGLTexture.cpp
+```
+
+`Texture` 提供宽度、高度、RendererID、`Bind(slot)` 和 `IsLoaded()`；
+`Texture2D::Create(path)` 根据 `Renderer::GetAPI()` 分发到 `OpenGLTexture2D`，
+与 `Shader::Create`、`VertexArray::Create` 的工厂模式保持一致。
+
+`OpenGLTexture2D` 负责：
+
+- 用 `stbi_load` 加载图片；
+- 根据通道数选择 `GL_RGB8` / `GL_RGBA8`；
+- `glCreateTextures` / `glTextureStorage2D` 创建不可变存储；
+- `glTextureSubImage2D` 上传 level 0；
+- 设置 `GL_REPEAT`、min/mag filter；
+- `Bind(slot)` 使用 `glBindTextureUnit`。
+
+#### 3. 使用 stb_image
+
+本机已有：
+
+```text
+D:\OpenGL\Include\stb_image\stb_image.h
+```
+
+新增 `Yue/Platform/OpenGL/StbImage.cpp`：
+
+```cpp
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image/stb_image.h>
+```
+
+通过一个独立的翻译单元定义实现，避免多个 `.cpp` 重复定义。
+加载前调用 `stbi_set_flip_vertically_on_load(1)`，处理 stb_image 与 OpenGL 的 V 轴差异。
+
+#### 4. Shader 采样与光照
+
+Fragment Shader：
+
+```glsl
+vec3 texColor = texture(u_Texture, v_TexCoord).rgb;
+vec3 tint = mix(vec3(1.0), v_Color, 0.5);
+
+float diffuse = max(dot(normalize(v_Normal), normalize(-u_LightDirection)), 0.0);
+float ambient = 0.15;
+
+FragColor = vec4(texColor * tint * (diffuse + ambient), 1.0);
+```
+
+- 纹理作为基础反照率；
+- 顶点颜色保留 50% 的染色影响；
+- 加入 0.15 环境光，避免背光面纯黑。
+
+`Shader` / `OpenGLShader` 新增 `SetInt`，在 `OnAttach` 中：
+
+```cpp
+m_Shader->Bind();
+m_Shader->SetInt("u_Texture", 0);
+```
+
+绘制前：
+
+```cpp
+if (m_Texture && m_Texture->IsLoaded())
+{
+    m_Texture->Bind(0);
+}
+```
+
+#### 5. 修复纯黑立方体
+
+第一次运行时纹理加载成功，但立方体是纯黑。
+
+原因：
+
+```cpp
+Yue::Ref<Yue::Texture2D> texture =
+    Yue::Texture2D::Create("Assets/Textures/cartoon_floor.png");
+```
+
+`texture` 是 `OnAttach()` 的局部 `Ref`。函数返回时引用计数归零，
+`OpenGLTexture2D` 析构并执行 `glDeleteTextures`，绘制时纹理单元 0 上已经没有有效纹理，
+`sampler2D` 采样到默认/不完整纹理，结果为黑色。
+
+修复：
+
+- 把纹理提升为 `SandboxLayer` 的成员 `m_Texture`，让生命周期与 Layer 一致；
+- 每帧绘制前显式 `Bind(0)`；
+- 增加 `IsLoaded()` 检查；
+- `OpenGLTexture2D` 的尺寸、ID、格式初始化为 0；
+- 析构时只在 `m_RendererID != 0` 时删除；
+- 上传前设置 `glPixelStorei(GL_UNPACK_ALIGNMENT, 1)`，避免 RGB 行对齐导致图像斜切；
+- 修正 `SetInt` 中 uniform location 使用 `GLuint` 的问题，改为 `GLint`。
+
+#### 6. mipmap
+
+`OpenGLTexture2D` 现在分配完整的 mip 链：
+
+```cpp
+const int mipLevels = 1 + static_cast<int>(
+    std::floor(std::log2(static_cast<float>(std::max(m_Width, m_Height)))));
+
+glTextureStorage2D(m_RendererID, mipLevels, internalFormat, m_Width, m_Height);
+```
+
+上传 level 0 后：
+
+```cpp
+glGenerateTextureMipmap(m_RendererID);
+```
+
+过滤设置：
+
+```cpp
+glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+```
+
+2048×2048 纹理对应 12 层 mip；三线性过滤在 mip 层内部做双线性，
+在相邻 mip 层之间再做一次线性插值，减少远处缩小时的闪烁和摩尔纹。
+
+### 三、核心知识点
+
+- UV 是顶点的二维纹理坐标，光栅化时在三角形内部插值；
+- 实体立方体每个面需要独立 UV，和逐面拆分法线是同一个思路；
+- 纹理单元（`GL_TEXTURE0`）、`sampler2D` 与 `glUniform1i` 共同决定 Shader 从哪个单元采样；
+- `Texture2D::Create` 工厂把平台相关实现隐藏在 `OpenGLTexture2D` 中；
+- 纹理对象有 GPU 生命周期，局部 `Ref` 离开作用域会删除纹理，必须由需要它的对象持有；
+- `glTextureStorage2D` 一次性分配不可变 mip 存储，`glGenerateTextureMipmap` 自动生成后续层；
+- `GL_LINEAR_MIPMAP_LINEAR` 是层内双线性 + 层间线性（三线性过滤）；
+- RGB 图像每行不保证 4 字节对齐，上传前应设置 `GL_UNPACK_ALIGNMENT`；
+- 当前纹理按 `GL_RGBA8` / `GL_RGB8` 上传，尚未处理 sRGB 与线性空间转换。
+
+### 四、验证记录
+
+- Debug|x64 编译通过，生成 `Yue.lib` 和 `Sandbox.exe`；仅有原有的 C4819 编码警告。
+- 运行日志确认纹理加载成功：
+
+```text
+[Yue Engine] Texture loaded: Assets/Textures/cartoon_floor.png
+             (2048x2048, 12 mip levels)
+```
+
+- 修复纹理生命周期后，立方体不再纯黑，截图中可以看到卡通地面纹理。
+- 当前 Shader 中顶点颜色仍会染色，纹理整体偏暗属于 `texColor * tint * (diffuse + ambient)` 的组合结果，可通过降低 tint 比例或提高 ambient 调整。
+- 六个面的 UV 按外部观察方向配置，使用带方向性的贴图时可以逐面检查朝向。
+- mipmap 的远距离闪烁改善需要实际移动相机观察，当前已验证纹理完整、12 层 mip 生成成功。
+
+### 五、已知限制与后续计划
+
+- 尚未处理 sRGB：纹理采样与光照都还没有做线性空间/伽马校正；
+- 尚未开启各向异性过滤，斜视角下可能偏模糊；
+- `Texture2D::Create(width, height)` 只有声明，没有实现，后续创建空纹理/FBO 时需要补上；
+- 窗口 resize 时相机 aspect ratio 与 viewport 仍未更新；
+- Back / Right / Top 三个面的绕序仍与法线方向不一致，开启背面剔除前需要修正；
+- Day 9 可以考虑 Mesh 抽象与多物体/多材质，或先做 sRGB + Blinn-Phong；
+- 之后再考虑 ImGui 调试面板、阴影映射和 PBR。
+
+----
+
+## 2026-10-23：Mesh 抽象与多物体/多纹理
+
+### 一、今日目标
+
+把 Cube 的顶点数据、索引和 VAO 从 `SandboxLayer` 抽到引擎层 `Mesh`，
+让同一个 Mesh 可以被多个物体复用，并用不同纹理验证多物体渲染。
+
+### 二、今日完成内容
+
+#### 1. 新增 Vertex 结构
+
+在 `Yue/Renderer/Mesh.h` 中定义：
+
+```cpp
+struct Vertex
+{
+    glm::vec3 Position;
+    glm::vec3 Color;
+    glm::vec3 Normal;
+    glm::vec2 TexCoord;
+};
+```
+
+内存布局：
+
+| 属性 | 类型 | offset |
+|---|---|---|
+| Position | Float3 | 0 |
+| Color | Float3 | 12 |
+| Normal | Float3 | 24 |
+| TexCoord | Float2 | 36 |
+| stride | | 44 |
+
+并加入：
+
+```cpp
+static_assert(sizeof(Vertex) == 44, "...");
+```
+
+保证 `Vertex` 的内存布局和 `BufferLayout` 的 stride 一致。
+
+#### 2. 新增 Mesh 类
+
+`Mesh` 负责：
+
+- 接收 `std::vector<Vertex>` 和 `std::vector<uint32_t>`；
+- 创建 VBO，上传顶点数据；
+- 配置 `BufferLayout`；
+- 创建 IndexBuffer；
+- 创建 VAO，把 VBO/IBO 绑定进去；
+- 对外只暴露 `GetVertexArray()`、顶点数、索引数。
+
+`Mesh` 持有 `Ref<VertexArray>`，VAO 内部又持有 VBO/IBO 的 `Ref`，
+所以 Mesh 的生命周期覆盖整条 GPU 资源链。
+
+#### 3. Sandbox 接入 Mesh
+
+`SandboxLayer` 原来手写：
+
+```cpp
+float vertices[] = { ... };
+m_VertexBuffer = VertexBuffer::Create(...);
+m_VertexArray = VertexArray::Create();
+```
+
+现在改成：
+
+```cpp
+std::vector<Yue::Vertex> vertices = { ... };
+std::vector<uint32_t> indices = { ... };
+
+m_CubeMesh = Yue::Mesh::Create(vertices, indices);
+```
+
+绘制时：
+
+```cpp
+Renderer::Submit(
+    m_Shader,
+    m_CubeMesh->GetVertexArray(),
+    m_Transform2.GetTransform());
+```
+
+#### 4. 两个物体、两张纹理
+
+新增第二张纹理：
+
+```text
+Sandbox/Assets/Textures/square_pavers_diff_1k.jpg
+```
+
+两个 Cube 在每次绘制前分别绑定自己的纹理：
+
+```cpp
+m_TextureA->Bind(0);
+Renderer::Submit(m_Shader, m_CubeMesh->GetVertexArray(), m_Transform2.GetTransform());
+
+m_TextureB->Bind(0);
+Renderer::Submit(m_Shader, m_CubeMesh->GetVertexArray(), m_Transform1.GetTransform());
+```
+
+### 三、核心知识点
+
+- `Vertex` 的结构体布局必须和 `BufferLayout` 的 offset/stride 一致；
+- VAO 记录 VBO/IBO 的绑定和属性格式，Mesh 持有 VAO 即可管理整条资源链；
+- 一个 Mesh 可以被多个物体复用，区别在 Transform 和 Material；
+- `std::make_shared` 不能调用私有构造函数，因此 `Mesh::Create` 使用
+  `Ref<Mesh>(new Mesh(...))`；
+- `IndexBuffer::Create` 目前接收非 const 指针，Mesh 中使用 `const_cast`，
+  因为 `glBufferData` 会立即复制索引数据。
+
+### 四、验证记录
+
+- Debug|x64 编译通过。
+- 运行日志确认两张纹理加载成功：
+
+```text
+Texture loaded: Assets/Textures/cartoon_floor.png (2048x2048, 12 mip levels)
+Texture loaded: Assets/Textures/square_pavers_diff_1k.jpg (1024x1024, 11 mip levels)
+```
+
+- 两个 Cube 使用同一个 Mesh、不同纹理，索引绘制、深度测试和自由相机正常。
+- 画面整体偏暗来自 `texColor * tint * (diffuse + ambient)` 的组合，
+  不是 Mesh 生命周期或布局问题。
+
+### 五、已知限制与后续计划
+
+- Mesh 的 VBO 目前通过 `Create(size)` + `SetData` 上传，内部使用
+  `GL_DYNAMIC_DRAW`；静态网格后续可以增加 const-correct 的
+  `Create(const void*, size)` 接口，使用 `GL_STATIC_DRAW`；
+- 纹理仍然在 Sandbox 中手动绑定，下一步抽 Material；
+- 新纹理 JPG 需要加入 Git；
+- `Texture2D::Create(width, height)` 仍只有声明，没有实现；
+- 窗口 resize、Back/Right/Top 绕序仍待处理。
+
+----
+
+## 2026-10-24：Material 封装
+
+### 一、今日目标
+
+把“Shader + 纹理 + sampler uniform”从 `SandboxLayer` 收进 `Material`，
+让 Renderer 通过 Material 提交绘制，为后续多材质和模型加载做准备。
+
+### 二、今日完成内容
+
+#### 1. 新增 Material 类
+
+`Material` 负责：
+
+- 持有 `Ref<Shader>`；
+- 保存若干纹理绑定：uniform 名字、`Ref<Texture2D>`、纹理单元；
+- `Bind()` 时绑定 Shader、绑定纹理、设置 `sampler2D` uniform。
+
+接口：
+
+```cpp
+class Material
+{
+public:
+    static Ref<Material> Create(const Ref<Shader>& shader);
+
+    void SetTexture(const std::string& uniformName,
+        const Ref<Texture2D>& texture,
+        uint32_t slot = 0);
+
+    void Bind() const;
+
+    const Ref<Shader>& GetShader() const { return m_Shader; }
+
+private:
+    struct TextureBinding
+    {
+        std::string UniformName;
+        Ref<Texture2D> Texture;
+        uint32_t Slot;
+    };
+
+    Ref<Shader> m_Shader;
+    std::vector<TextureBinding> m_Textures;
+};
+```
+
+`Material::Bind()`：
+
+```cpp
+m_Shader->Bind();
+
+for (const auto& binding : m_Textures)
+{
+    if (binding.Texture && binding.Texture->IsLoaded())
+    {
+        binding.Texture->Bind(binding.Slot);
+        m_Shader->SetInt(binding.UniformName,
+            static_cast<int>(binding.Slot));
+    }
+}
+```
+
+必须先绑定 Shader，再设置 `sampler2D` uniform，否则 `SetInt` 会作用到错误的 Program。
+
+#### 2. Renderer 增加 Material 重载
+
+保留原有：
+
+```cpp
+Submit(const Ref<Shader>&, const Ref<VertexArray>&, const glm::mat4&);
+```
+
+新增：
+
+```cpp
+Submit(const Ref<Material>&, const Ref<VertexArray>&, const glm::mat4&);
+```
+
+实现中：
+
+- `material->Bind()` 负责 Shader、纹理、采样器；
+- Renderer 负责 `transform/view/projection`；
+- 最后绑定 VAO 并 `DrawIndexed`。
+
+职责划分：
+
+| 内容 | 负责者 |
+|---|---|
+| 顶点/索引/VAO | Mesh |
+| Shader + 纹理 + 材质 uniform | Material |
+| 物体位置/旋转/缩放 | TransformComponent |
+| View / Projection / Draw Call | Renderer |
+| 方向光 | 场景/Renderer（当前仍在 Sandbox 设置） |
+
+#### 3. Sandbox 接入 Material
+
+```cpp
+m_MaterialA = Yue::Material::Create(m_Shader);
+m_MaterialA->SetTexture("u_Texture", m_TextureA, 0);
+
+m_MaterialB = Yue::Material::Create(m_Shader);
+m_MaterialB->SetTexture("u_Texture", m_TextureB, 0);
+```
+
+绘制：
+
+```cpp
+Renderer::Submit(m_MaterialA, m_CubeMesh->GetVertexArray(), m_Transform2.GetTransform());
+Renderer::Submit(m_MaterialB, m_CubeMesh->GetVertexArray(), m_Transform1.GetTransform());
+```
+
+`OnUpdate` 中不再手动 `Bind` 纹理，也不再手动 `SetInt("u_Texture", 0)`。
+
+#### 4. 代码检查与修正
+
+检查中发现并修复：
+
+- `SetTexture` 原来使用 `for (auto binding : m_Textures)`，会拷贝条目，
+  重复设置同一个 uniform 时不会修改 vector；改为 `for (auto& binding : ...)`；
+- `GetShader` 原来按值返回 `Ref<Shader>`，改为返回 const 引用，避免多余的
+  `shared_ptr` 引用计数操作；
+- 删除 `Material.h` 中 `#include "Core/Base.h";` 末尾多余的分号；
+- 删除 Sandbox 中重复的 `m_Shader->Bind()` / `SetInt("u_Texture", 0)`；
+- 删除 Sandbox 中注释掉的旧 `m_VertexBuffer` / `m_VertexArray` 成员。
+
+### 三、核心知识点
+
+- Material 是“表面外观”的数据封装，Mesh 是几何，Transform 是位置；
+- 同一个 Shader 可以被多个 Material 共享，每个 Material 使用不同纹理；
+- Material 持有 `Ref<Texture2D>` 和 `Ref<Shader>`，保证资源生命周期；
+- 纹理单元 + uniform 名字共同决定 Shader 从哪个单元采样；
+- `Material::Bind()` 必须先绑定 Shader，再 `SetInt`；
+- 相机、View/Projection、灯光属于场景状态，不应该放进 Material；
+- 当前 Material 只封装 Shader + 纹理，还没有材质参数和 MaterialInstance。
+
+### 四、验证记录
+
+- Debug|x64 编译通过，只有项目原有的 C4819 编码警告。
+- 运行日志确认两张纹理加载成功：
+
+```text
+Texture loaded: Assets/Textures/cartoon_floor.png (2048x2048, 12 mip levels)
+Texture loaded: Assets/Textures/square_pavers_diff_1k.jpg (1024x1024, 11 mip levels)
+```
+
+- 两个 Cube 分别使用 `m_MaterialA` / `m_MaterialB`，纹理显示正常，
+  索引绘制、深度测试、自由相机和 Lambert 光照均正常。
+- 没有出现 Material 生命周期导致的纹理丢失或黑屏。
+
+### 五、已知限制与后续计划
+
+- Material 目前只保存 Shader + 纹理绑定，还没有 `Tint`、`Roughness` 等材质参数；
+- 如果多个物体共用 Material 但需要各自不同的参数，后续需要
+  `MaterialInstance`；
+- `Renderer::Submit(Shader)` 和 `Submit(Material)` 有重复的矩阵上传代码，
+  后续可以抽一个内部 helper；
+- 纹理单元仍然由调用者显式指定，后续可以根据 uniform 名字自动分配；
+- 新纹理 JPG 还未加入 Git；
+- 窗口 resize、Back/Right/Top 绕序、sRGB、各向异性过滤仍未处理；
+- `Texture2D::Create(width, height)` 仍只有声明，没有实现；
+- 下一步可以做 Material 参数/MaterialInstance，或者接 Assimp 模型加载；
+- 之后再做多光源/Blinn-Phong、阴影映射和 ImGui。
+
+
