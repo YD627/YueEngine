@@ -17,6 +17,7 @@
 // ----Renderer----------------------
 #include "Yue/Renderer/Buffer.h"
 #include "Yue/Renderer/Mesh.h"
+#include "Yue/Renderer/Model.h"
 #include "Yue/Renderer/Renderer.h"
 #include "Yue/Renderer/VertexArray.h"
 #include "Yue/Renderer/Shader.h"

@@ -18,10 +18,12 @@ private:
 	Yue::Ref<Yue::Material> m_MaterialA;
 	Yue::Ref<Yue::Material> m_MaterialB;
 	Yue::Ref<Yue::Mesh> m_CubeMesh;
+	Yue::Ref<Yue::Model> m_Model;
 
 	// Test
 	Yue::SceneCamera m_Camera;
 	Yue::CameraController m_CameraController;
 	Yue::TransformComponent m_Transform1;
 	Yue::TransformComponent m_Transform2;
+	Yue::TransformComponent m_ModelTransform;
 };

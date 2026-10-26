@@ -81,6 +81,9 @@
     <ClCompile Include="Renderer\Mesh.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\Model.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="Renderer\Shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -186,6 +189,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\Mesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\Model.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\RenderCommand.h">

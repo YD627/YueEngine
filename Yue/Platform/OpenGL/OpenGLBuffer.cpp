@@ -36,8 +36,11 @@ namespace Yue {
 	// IndexBuffer
 	OpenGLIndexBuffer::OpenGLIndexBuffer(uint32_t* indices, uint32_t count):m_Count(count) {
 		glCreateBuffers(1, &m_RendererID);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+
+		// DSA upload: do NOT bind GL_ELEMENT_ARRAY_BUFFER here. Binding it would
+		// overwrite the EBO of whichever VAO happens to be bound. Creating a
+		// second Mesh (for example a model) must not corrupt the previous Mesh.
+		glNamedBufferData(m_RendererID, count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
 	}
 
 	OpenGLIndexBuffer::~OpenGLIndexBuffer() {

@@ -45,3 +45,7 @@ EOF
 
 # workbuddy文件
 .workbuddy/
+
+# 3D 模型资产（*.obj 默认是编译器对象文件，需要单独放行）
+!Sandbox/Assets/Models/
+!Sandbox/Assets/Models/*.obj

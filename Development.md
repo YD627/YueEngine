@@ -3742,4 +3742,186 @@ Texture loaded: Assets/Textures/square_pavers_diff_1k.jpg (1024x1024, 11 mip lev
 - 下一步可以做 Material 参数/MaterialInstance，或者接 Assimp 模型加载；
 - 之后再做多光源/Blinn-Phong、阴影映射和 ImGui。
 
+----
+
+## 2026-10-26：Assimp 模型加载与 EBO 状态修复
+
+### 一、今日目标
+
+接入 Assimp，把外部 OBJ 模型转换成引擎的 `Mesh`，并用 `Material` 绘制；
+同时排查“加入模型后，原先两个 Cube 出现缺面”的回归问题。
+
+### 二、今日完成内容
+
+#### 1. Assimp 工程配置
+
+本机已有：
+
+```text
+D:\OpenGL\Include\assimp
+D:\OpenGL\Lib\assimp-vc145-mtd.lib
+D:\OpenGL\Bin\x64\assimp-vc145-mtd.dll
+```
+
+在 `Sandbox.vcxproj` 的 Debug|x64 中：
+
+- `AdditionalDependencies` 增加 `assimp-vc145-mtd.lib`；
+- `AdditionalLibraryDirectories` 增加 `D:\OpenGL\Lib`；
+- post-build 把 `assimp-vc145-mtd.dll` 复制到 `$(OutDir)`。
+
+#### 2. 新增 Model 类
+
+新增 `Yue/Renderer/Model.h/.cpp`：
+
+- 构造时用 `Assimp::Importer` 读取模型；
+- 使用 `aiProcess_Triangulate | aiProcess_FlipUVs`；
+- 递归遍历 `aiNode`，把每个 `aiMesh` 转换成 `Mesh`；
+- 保存 `std::vector<Ref<Mesh>>`；
+- `Draw(material, transform)` 对每个子 Mesh 调用 `Renderer::Submit`。
+
+顶点转换：
+
+```text
+aiMesh::mVertices        → Vertex::Position
+aiMesh::mNormals         → Vertex::Normal
+aiMesh::mTextureCoords[0] → Vertex::TexCoord
+无顶点颜色               → Vertex::Color = 白色
+aiFace::mIndices         → std::vector<uint32_t>
+```
+
+模型没有顶点颜色时使用白色，避免把纹理乘黑。
+
+#### 3. 本地测试模型
+
+当前网络不可用，无法下载现成模型，因此在本地生成了：
+
+```text
+Sandbox/Assets/Models/Hut.obj
+```
+
+模型包含：
+
+- 4 面墙；
+- 4 个屋顶三角形；
+- 一个烟囱；
+- 48 个顶点、22 个三角形；
+- 逐面法线和 UV，保留硬边。
+
+#### 4. Sandbox 接入
+
+`SandboxLayer` 增加：
+
+```cpp
+Yue::Ref<Yue::Model> m_Model;
+Yue::TransformComponent m_ModelTransform;
+```
+
+加载：
+
+```cpp
+m_Model = Yue::CreateRef<Yue::Model>("Assets/Models/Hut.obj");
+m_ModelTransform.Scale = { 1.2f, 1.2f, 1.2f };
+```
+
+绘制：
+
+```cpp
+if (m_Model && m_Model->IsLoaded())
+{
+    m_Model->Draw(m_MaterialB, m_ModelTransform.GetTransform());
+}
+```
+
+#### 5. `.gitignore` 放行 OBJ 资产
+
+`.gitignore` 原本有：
+
+```gitignore
+*.obj
+```
+
+这会把模型文件 `Hut.obj` 当成编译器对象文件忽略掉。已追加：
+
+```gitignore
+!Sandbox/Assets/Models/
+!Sandbox/Assets/Models/*.obj
+```
+
+#### 6. 修复 EBO 状态污染导致的 Cube 缺面
+
+加入模型后，原先两个 Cube 出现缺面、三角形错位、能看到背景。  
+用“只输出纹理”的临时 Shader 验证，问题仍然存在，说明不是光照或顶点颜色。
+
+根因在 `OpenGLIndexBuffer` 构造函数：
+
+```cpp
+glCreateBuffers(1, &m_RendererID);
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
+glBufferData(GL_ELEMENT_ARRAY_BUFFER, ...);
+```
+
+`GL_ELEMENT_ARRAY_BUFFER` 的绑定是**当前 VAO 的状态**。
+
+创建模型 Mesh 时：
+
+- 当前绑定的 VAO 还是 Cube 的 VAO；
+- 创建模型 IBO 时把模型的索引缓冲绑定到了 Cube VAO；
+- Cube VAO 的 EBO 被覆盖；
+- 绘制 Cube 时用 Cube 的顶点 + 模型的索引，导致缺面/错位。
+
+修复方式：使用 DSA 上传，不在构造函数中绑定 EBO：
+
+```cpp
+glCreateBuffers(1, &m_RendererID);
+glNamedBufferData(m_RendererID,
+    count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+```
+
+`Bind()` 仍然保留，因为 `VertexArray::SetIndexBuffer` 需要在绑定新 VAO 后
+把 EBO 记录进该 VAO。
+
+### 三、核心知识点
+
+- Assimp 把文件解析成 `aiScene`，每个 `aiMesh` 包含顶点、法线、UV 和面索引；
+- `aiProcess_Triangulate` 保证输出三角形，`aiProcess_FlipUVs` 处理 V 轴；
+- 当前实现忽略 `aiNode::mTransformation`，单节点 OBJ 可用，层级模型后续要补；
+- VAO 记录 EBO 绑定，`glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ...)` 会修改当前 VAO；
+- 创建 GPU buffer 应尽量使用 DSA，避免修改当前绑定状态；
+- 模型通常没有顶点颜色，转换时用白色，避免纹理被乘黑；
+- `Model` 与 `Mesh`、`Material` 的分工：
+  - Model 负责加载和组织子 Mesh；
+  - Mesh 负责几何；
+  - Material 负责 Shader + 纹理。
+
+### 四、验证记录
+
+- Debug|x64 编译通过，Assimp DLL 已复制到输出目录。
+- 运行日志确认：
+
+```text
+Texture loaded: Assets/Textures/cartoon_floor.png (2048x2048, 12 mip levels)
+Texture loaded: Assets/Textures/square_pavers_diff_1k.jpg (1024x1024, 11 mip levels)
+Model loaded: Assets/Models/Hut.obj (1 meshes)
+```
+
+- 修复 EBO 状态后，两个 Cube 恢复为实体，模型小屋也正常显示；
+- 截图确认 Cube 不再缺面，模型屋顶/墙体/烟囱可见；
+- 模型整体偏暗是当前光照/纹理组合的结果，不是加载失败。
+
+### 五、已知限制与后续计划
+
+- 当前 Model 忽略节点层级变换，加载 glTF/FBX 的多节点模型可能位置错误；
+- 所有子 Mesh 共用一个 Material，尚未读取 Assimp 的 `aiMaterial` 和贴图路径；
+- Assimp 只配置了 Debug 版，Release 还没接；
+- Assimp 的 include/lib/DLL 路径硬编码为 `D:\OpenGL`，换机器需要改工程配置；
+- 生成的 `Hut.obj` 只是测试资产，后续可替换成真实模型；
+- `Texture2D::Create(width, height)` 仍未实现；
+- 窗口 resize、Back/Right/Top 绕序、sRGB、各向异性过滤仍未处理；
+- 下一步建议：
+  1. 累积 `aiNode::mTransformation`，支持层级模型；
+  2. 按 `aiMesh::mMaterialIndex` 加载每个子 Mesh 的 Material/贴图；
+  3. 接多光源/Blinn-Phong 或阴影映射；
+  4. 用真实模型替换 Hut，做 Showcase。
+
+
 

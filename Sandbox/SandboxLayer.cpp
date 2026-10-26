@@ -107,6 +107,16 @@ void SandboxLayer::OnAttach()
 
 	m_MaterialB = Yue::Material::Create(m_Shader);
 	m_MaterialB->SetTexture("u_Texture", m_TextureB, 0);
+
+	// ---Model------
+	m_Model = Yue::CreateRef<Yue::Model>("Assets/Models/Hut.obj");
+	if (!m_Model->IsLoaded())
+	{
+		YUE_ERROR("Failed to load model: Assets/Models/Hut.obj");
+	}
+	m_ModelTransform.Translation = { 0.0f, 0.0f, 0.0f };
+	m_ModelTransform.Rotation = { 0.0f, 0.0f, 0.0f };
+	m_ModelTransform.Scale = { 1.2f, 1.2f, 1.2f };
 }
 
 void SandboxLayer::OnDetach()
@@ -131,6 +141,11 @@ void SandboxLayer::OnUpdate(Yue::Timestep ts)
 
 	Yue::Renderer::Submit(m_MaterialA, m_CubeMesh->GetVertexArray(), m_Transform2.GetTransform());
 	Yue::Renderer::Submit(m_MaterialB, m_CubeMesh->GetVertexArray(), m_Transform1.GetTransform());
+
+	if (m_Model && m_Model->IsLoaded())
+	{
+		m_Model->Draw(m_MaterialB, m_ModelTransform.GetTransform());
+	}
 
 	Yue::Renderer::EndScene();
 }
