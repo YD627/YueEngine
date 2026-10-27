@@ -26,6 +26,9 @@ namespace Yue {
 	void Renderer::BeginScene(const SceneCamera& camera, const glm::mat4& view) {
 		s_SceneData->View = view;
 		s_SceneData->Projection = camera.GetProjection();
+		// The translation column of the inverse view matrix is the camera's
+		// world-space position.
+		s_SceneData->CameraPosition = glm::vec3(glm::inverse(view)[3]);
 	}
 
 	void Renderer::EndScene() {
@@ -36,6 +39,7 @@ namespace Yue {
 		shader->SetMat4("transform", transform);
 		shader->SetMat4("view", s_SceneData->View);
 		shader->SetMat4("projection", s_SceneData->Projection);
+		shader->SetFloat3("u_CameraPosition", s_SceneData->CameraPosition);
 
 		vertexArray->Bind();
 
@@ -48,6 +52,7 @@ namespace Yue {
 		shader->SetMat4("transform", transform);
 		shader->SetMat4("view", s_SceneData->View);
 		shader->SetMat4("projection", s_SceneData->Projection);
+		shader->SetFloat3("u_CameraPosition", s_SceneData->CameraPosition);
 
 		vertexArray->Bind();
 		RenderCommand::DrawIndexed(vertexArray);

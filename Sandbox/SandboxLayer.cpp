@@ -65,6 +65,10 @@ void SandboxLayer::OnAttach()
 	m_CubeMesh = Yue::Mesh::Create(vertices, indices);
 
 	m_Shader->SetFloat3("u_LightDirection", { -0.5f, -1.0f, -0.3f });
+	m_Shader->SetFloat3("u_LightColor", { 1.0f, 0.95f, 0.85f });
+	m_Shader->SetFloat3("u_PointLightPosition", { 2.0f, 2.5f, 2.0f });
+	m_Shader->SetFloat3("u_PointLightColor", { 1.0f, 0.55f, 0.25f });
+	m_Shader->SetFloat3("u_AmbientColor", { 0.08f, 0.08f, 0.10f });
 	
 	// ---Object------
 	m_Transform1.Translation = { -4.0f, 0.0f, 0.0f };
@@ -104,9 +108,13 @@ void SandboxLayer::OnAttach()
 	// ---Material------
 	m_MaterialA = Yue::Material::Create(m_Shader);
 	m_MaterialA->SetTexture("u_Texture", m_TextureA, 0);
+	m_MaterialA->SetFloat("u_SpecularStrength", 0.6f);
+	m_MaterialA->SetFloat("u_Shininess", 32.0f);
 
 	m_MaterialB = Yue::Material::Create(m_Shader);
 	m_MaterialB->SetTexture("u_Texture", m_TextureB, 0);
+	m_MaterialB->SetFloat("u_SpecularStrength", 0.25f);
+	m_MaterialB->SetFloat("u_Shininess", 8.0f);
 
 	// ---Model------
 	m_Model = Yue::CreateRef<Yue::Model>("Assets/Models/Hut.obj");

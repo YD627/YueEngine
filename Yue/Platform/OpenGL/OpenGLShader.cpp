@@ -132,8 +132,18 @@ namespace Yue {
 		glUniform1i(location, value);
 	}
 
+	void OpenGLShader::SetFloat(const std::string& name, float value) {
+		GLint location = GetUniformLocation(name);
+
+		if (location == -1) {
+			return;
+		}
+
+		glUniform1f(location, value);
+	}
+
 	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& matrix) {
-		GLuint location = GetUniformLocation(name);
+		GLint location = GetUniformLocation(name);
 
 		if (location == -1){
 			return;

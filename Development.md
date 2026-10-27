@@ -3923,5 +3923,201 @@ Model loaded: Assets/Models/Hut.obj (1 meshes)
   3. 接多光源/Blinn-Phong 或阴影映射；
   4. 用真实模型替换 Hut，做 Showcase。
 
+----
+
+## 2026-10-27：多光源 Blinn-Phong 与 Material 参数
+
+### 一、今日目标
+
+把光照从“单方向光 + Lambert”扩展为：
+
+- 方向光 + 点光源；
+- Lambert 漫反射 + Blinn-Phong 高光；
+- 点光源距离衰减；
+- Material 支持 `SpecularStrength` / `Shininess` 参数；
+- 相机世界坐标传入 Shader。
+
+同时验证纹理、mipmap、模型加载、Mesh 和自由相机不出现回归。
+
+### 二、今日完成内容
+
+#### 1. Shader 增加 SetFloat
+
+`Shader` 新增：
+
+```cpp
+virtual void SetFloat(const std::string& name, float value) = 0;
+```
+
+`OpenGLShader` 用 `glUniform1f` 实现，并顺手把 `SetMat4` 的 uniform location
+类型从 `GLuint` 改为 `GLint`，避免 `-1` 依赖无符号转换。
+
+#### 2. Material 支持 float / vec3 属性
+
+`Material` 新增：
+
+```cpp
+void SetFloat(const std::string& uniformName, float value);
+void SetFloat3(const std::string& uniformName, const glm::vec3& value);
+```
+
+内部用：
+
+```cpp
+struct FloatProperty { std::string UniformName; float Value; };
+struct Vec3Property  { std::string UniformName; glm::vec3 Value; };
+
+std::vector<FloatProperty> m_Floats;
+std::vector<Vec3Property>  m_Vec3s;
+```
+
+`Bind()` 顺序：
+
+```text
+Shader Bind
+  → 纹理绑定 + SetInt
+  → float 属性
+  → vec3 属性
+```
+
+同名属性会覆盖，不会重复添加。
+
+#### 3. Renderer 传递相机世界坐标
+
+`SceneData` 增加：
+
+```cpp
+glm::vec3 CameraPosition;
+```
+
+`BeginScene` 中从 View Matrix 反推：
+
+```cpp
+s_SceneData->CameraPosition = glm::vec3(glm::inverse(view)[3]);
+```
+
+`Submit` 时上传：
+
+```cpp
+shader->SetFloat3("u_CameraPosition", s_SceneData->CameraPosition);
+```
+
+这样不需要修改 `BeginScene` 的签名，也不需要让 `SceneCamera` 保存位置。
+
+#### 4. Vertex Shader 输出世界坐标
+
+```glsl
+out vec3 v_WorldPosition;
+
+vec4 worldPosition = transform * vec4(aPos, 1.0);
+gl_Position = projection * view * worldPosition;
+v_WorldPosition = worldPosition.xyz;
+```
+
+#### 5. Fragment Shader 实现 Blinn-Phong
+
+方向光：
+
+```glsl
+vec3 N = normalize(v_Normal);
+vec3 V = normalize(u_CameraPosition - v_WorldPosition);
+
+vec3 L = normalize(-u_LightDirection);
+vec3 H = normalize(L + V);
+
+float NdotL = max(dot(N, L), 0.0);
+float spec = pow(max(dot(N, H), 0.0), max(u_Shininess, 1.0))
+           * u_SpecularStrength;
+
+color += albedo * u_LightColor * NdotL;
+color += u_LightColor * spec;
+```
+
+点光源：
+
+```glsl
+vec3 toLight = u_PointLightPosition - v_WorldPosition;
+float distance = length(toLight);
+vec3 Lp = toLight / max(distance, 0.0001);
+
+float attenuation = 1.0 / (1.0 + 0.09 * distance
+                               + 0.032 * distance * distance);
+```
+
+最终颜色：
+
+```glsl
+color = albedo * u_AmbientColor;
+color += directionalDiffuse + directionalSpecular;
+color += pointDiffuse * attenuation + pointSpecular * attenuation;
+FragColor = vec4(color, 1.0);
+```
+
+#### 6. Sandbox 设置灯光与材质参数
+
+灯光：
+
+```cpp
+m_Shader->SetFloat3("u_LightDirection", { -0.5f, -1.0f, -0.3f });
+m_Shader->SetFloat3("u_LightColor", { 1.0f, 0.95f, 0.85f });
+m_Shader->SetFloat3("u_PointLightPosition", { 2.0f, 2.5f, 2.0f });
+m_Shader->SetFloat3("u_PointLightColor", { 1.0f, 0.55f, 0.25f });
+m_Shader->SetFloat3("u_AmbientColor", { 0.08f, 0.08f, 0.10f });
+```
+
+材质：
+
+```cpp
+m_MaterialA->SetFloat("u_SpecularStrength", 0.6f);
+m_MaterialA->SetFloat("u_Shininess", 32.0f);
+
+m_MaterialB->SetFloat("u_SpecularStrength", 0.25f);
+m_MaterialB->SetFloat("u_Shininess", 8.0f);
+```
+
+### 三、核心知识点
+
+- View Matrix 是相机世界变换的逆，`inverse(view)[3]` 是相机世界坐标；
+- Blinn-Phong 使用半程向量 `H = normalize(L + V)`，比反射向量更高效；
+- 高光强度由 `pow(max(dot(N, H), 0), shininess)` 控制；
+- 点光源需要距离衰减，常用形式为 `1 / (1 + k1*d + k2*d²)`；
+- 方向光、点光源、环境光应该在同一个光照空间（当前是世界空间）累加；
+- Material 负责表面参数，灯光属于场景状态，View/Projection 属于相机/Renderer；
+- 当前没有 sRGB/线性空间转换，Blinn-Phong 结果仍是 gamma 空间近似，不是物理正确光照。
+
+### 四、验证记录
+
+- Debug|x64 编译通过，只有原有 C4819 编码警告。
+- 运行日志确认纹理和模型正常：
+
+```text
+Texture loaded: Assets/Textures/cartoon_floor.png (2048x2048, 12 mip levels)
+Texture loaded: Assets/Textures/square_pavers_diff_1k.jpg (1024x1024, 11 mip levels)
+Model loaded: Assets/Models/Hut.obj (1 meshes)
+```
+
+- 方向光 + 点光源生效后，小屋正面和屋顶明显变亮；
+- 两个 Cube 保持实体，之前修复的 EBO 状态没有回退；
+- 纹理、mipmap、模型加载、自由相机和深度测试正常；
+- 当前纹理较粗糙、视角下高光偏柔和，可通过调整 `u_SpecularStrength`、
+  `u_Shininess` 或点光源位置观察更明显的高光。
+
+### 五、已知限制与后续计划
+
+- 当前只有 1 个方向光 + 1 个点光源，还没有灯光数组/场景灯光管理器；
+- 点光源位置固定，没有可视化 gizmo；
+- 没有阴影，点光源会穿过物体；
+- 没有 sRGB/线性空间校正；
+- Material float 属性按名字覆盖，如果某个 Material 不设置某个属性，
+  可能继承上一个 Material 的 uniform 值；
+- Model 仍然所有子 Mesh 共用一个 Material；
+- `Texture2D::Create(width, height)` 仍未实现；
+- 窗口 resize、Back/Right/Top 绕序仍未处理；
+- 下一步建议：
+  1. 引入 `Light` 结构/灯光数组，支持多个点光源；
+  2. 做方向光 Shadow Mapping + PCF；
+  3. 再做 MaterialInstance、sRGB/线性空间和 ImGui 调参。
+
+
 
 

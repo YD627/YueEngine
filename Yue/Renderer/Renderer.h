@@ -28,6 +28,7 @@ namespace Yue {
 		struct SceneData {
 			glm::mat4 View;
 			glm::mat4 Projection;
+			glm::vec3 CameraPosition = glm::vec3(0.0f);
 		};
 
 		static Scope<SceneData> s_SceneData;
